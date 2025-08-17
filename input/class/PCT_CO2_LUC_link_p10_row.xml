@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scenario name="pct_addLUC">
+    <world>
+        <region name="USA">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Canada">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="EU-15">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Europe_Non_EU">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="European Free Trade Association">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Japan">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Australia_NZ">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Central Asia">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Russia">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="China">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Middle East">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Africa_Eastern">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Africa_Northern">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Africa_Southern">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Africa_Western">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="South Africa">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Brazil">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Central America and Caribbean">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="South America_Northern">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="South America_Southern">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Argentina">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Colombia">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Indonesia">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Pakistan">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="South Asia">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Southeast Asia">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Europe_Eastern">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="EU-12">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="India">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Mexico">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+        <region name="Taiwan">
+             <ghgpolicy name="CO2">
+                <market>row</market>
+            </ghgpolicy>
+            <linked-ghg-policy name="CO2_LUC">
+                <market>row</market>
+                <linked-policy>CO2</linked-policy>
+                <price-adjust year="1975" fillout="1">0.1</price-adjust>
+                <demand-adjust year="1975" fillout="1">0</demand-adjust>
+                <price-unit>1990$/tC</price-unit>
+                <output-unit>MTC</output-unit>
+            </linked-ghg-policy>
+        </region>
+    </world>
+</scenario>
