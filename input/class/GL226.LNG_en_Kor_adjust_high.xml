@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scenario>
+   <world>
+        <region name="South Korea">
+
+            <supplysector name="regional natural gas">
+                <nesting-subsector name="domestic natural gas">
+                    <subsector name="domestic natural gas">
+                        <technology name="domestic natural gas">
+                 <period year="2015">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>1.00</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                          </period>
+                  <period year="2020">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>0.55</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2025">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>1.18</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2030">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>2.33</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2035">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2040">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2045">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2050">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2055">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2060">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2065">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2070">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2075">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2080">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2085">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2090">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2095">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2100">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+               </technology>
+                    </subsector>
+                </nesting-subsector>
+                <nesting-subsector name="imported natural gas">
+                    <subsector name="imported LNG">
+                        <technology name="imported LNG">
+                  <period year="2015">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>1.0</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2020">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>0.55</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2025">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>1.18</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2030">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>2.33</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2035">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2040">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2045">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2050">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2055">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2060">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2065">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2070">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2075">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2080">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2085">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2090">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2095">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+                  <period year="2100">
+                     <minicam-non-energy-input name="regional price adjustment">
+                        <input-cost>3.46</input-cost>
+                     </minicam-non-energy-input>
+                     <CO2 name="CO2"/>
+                  </period>
+               </technology>
+            </subsector>
+                </nesting-subsector>
+         </supplysector>
+      </region>
+   </world>
+</scenario>
