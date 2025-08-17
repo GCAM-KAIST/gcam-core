@@ -1,0 +1,429 @@
+<scenario>
+  <world>
+    <region name="South Korea" nocreate="1">
+      <supplysector name="electricity">
+        <subsector name="nuclear">
+          <stub-technology name="Gen_III" delete="1"/>
+          <technology name="Gen_III_Korea">
+            <period year="1975">
+              <share-weight>0</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1650</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="1990">
+              <share-weight>0</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1650</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2005">
+              <share-weight>0</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1650</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2010">
+              <share-weight>0</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1650</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2015">
+              <share-weight>0</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2020">
+              <fixedOutput>0.03</fixedOutput>
+              <share-weight>0</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2025">
+              <fixedOutput>0.17</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2030">
+              <fixedOutput>0.3</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2035">
+              <fixedOutput>0.45</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2040">
+              <fixedOutput>0.62</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2045">
+              <fixedOutput>0.69</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2050">
+              <fixedOutput>0.76</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2055">
+              <fixedOutput>0.8</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2060">
+              <fixedOutput>0.033</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2065">
+              <fixedOutput>0.033</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2070">
+              <fixedOutput>0.033</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2075">
+              <fixedOutput>0.033</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2080">
+              <fixedOutput>0.033</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2085">
+              <fixedOutput>0.033</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2090">
+              <fixedOutput>0.033</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2095">
+              <fixedOutput>0.033</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+            <period year="2100">
+              <fixedOutput>0.033</fixedOutput>
+              <share-weight>1</share-weight>
+              <capacity-factor>0.9</capacity-factor>
+              <minicam-energy-input name="nuclearFuelGenII">
+                <efficiency>0.333</efficiency>
+              </minicam-energy-input>
+              <input-capital name="capital">
+                <capital-overnight>1704</capital-overnight>
+                <fixed-charge-rate>0.13</fixed-charge-rate>
+              </input-capital>
+              <input-OM-fixed name="OM-fixed">
+                <OM-fixed>29.43</OM-fixed>
+              </input-OM-fixed>
+              <input-OM-var name="OM-var">
+                <OM-var>0.62</OM-var>
+              </input-OM-var>
+              <CO2 name="CO2"/>
+            </period>
+          </technology>
+        </subsector>
+      </supplysector><pass-through-sector name="elec_Gen_III" delete="1">
+        
+      </pass-through-sector>
+      
+    </region>
+  </world>
+</scenario>
