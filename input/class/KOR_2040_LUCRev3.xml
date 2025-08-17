@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scenario>
+    <world>
+            <region name="South Korea">
+            <ghgpolicy name="GHG">
+                <market>South Korea</market>
+                <constraint year="2025">672.928</constraint>
+                <constraint year="2030">470.662</constraint>
+                <constraint year="2035">268.396</constraint>
+                <constraint year="2040">66.130</constraint>
+                <constraint year="2045">-34.834</constraint>
+                <constraint year="2050">-85.316</constraint>
+                <constraint year="2055">-110.557</constraint>
+                <constraint year="2060">-123.177</constraint>
+                <constraint year="2065">-129.487</constraint>
+                <constraint year="2070">-132.642</constraint>
+                <constraint year="2075">-134.220</constraint>
+                <constraint year="2080">-135.009</constraint>
+                <constraint year="2085">-135.403</constraint>
+                <constraint year="2090">-135.600</constraint>
+                <constraint year="2095">-135.699</constraint>
+                <constraint year="2100">-135.748</constraint>
+            </ghgpolicy>
+        </region>
+    </world>
+</scenario>
