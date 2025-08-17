@@ -1,0 +1,687 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scenario>
+    <world>
+<region name="Africa_Eastern">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Africa_Northern">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Africa_Southern">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Africa_Western">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Argentina">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Australia_NZ">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Brazil">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Canada">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Central America and Caribbean">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Central Asia">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="China">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Colombia">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="EU-12">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="EU-15">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Europe_Eastern">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Europe_Non_EU">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="European Free Trade Association">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="India">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Indonesia">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Japan">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Mexico">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Middle East">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563</constraint>
+        <constraint year="2075">-1615</constraint>
+        <constraint year="2080">-1641</constraint>
+        <constraint year="2085">-1654</constraint>
+        <constraint year="2090">-1660</constraint>
+        <constraint year="2095">-1664</constraint>
+        <constraint year="2100">-1665</constraint>
+    </ghgpolicy>
+</region>
+<region name="Pakistan">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Russia">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="South Africa">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="South America_Northern">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="South America_Southern">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="South Asia">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Southeast Asia">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="USA">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+</region>
+<region name="Taiwan">
+    <ghgpolicy name="CO2">
+        <market>row</market>
+        <constraint year="2020">10000.0</constraint>
+        <constraint year="2025">8334.0</constraint>
+        <constraint year="2030">6667.0</constraint>
+        <constraint year="2035">5000.0</constraint>
+        <constraint year="2040">3334.0</constraint>
+        <constraint year="2045">1667.0</constraint>
+        <constraint year="2050">0.0</constraint>
+        <constraint year="2055">-834.0</constraint>
+        <constraint year="2060">-1250.0</constraint>
+        <constraint year="2065">-1459.0</constraint>
+        <constraint year="2070">-1563.0</constraint>
+        <constraint year="2075">-1615.0</constraint>
+        <constraint year="2080">-1641.0</constraint>
+        <constraint year="2085">-1654.0</constraint>
+        <constraint year="2090">-1660.0</constraint>
+        <constraint year="2095">-1664.0</constraint>
+        <constraint year="2100">-1665.0</constraint>
+    </ghgpolicy>
+        </region>
+    </world>
+</scenario>
