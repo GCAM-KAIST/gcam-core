@@ -73,7 +73,11 @@ load_csv_files <- function(filenames, optionals, quiet = FALSE, dummy = NULL, ..
     col_types <- extract_header_info(header, label = "Column types:", fqfn, required = TRUE)
 
     # Attempt the file read
-    # Note `options(warn = 2)` forces all warnings to errors...
+    # Note `options(warn = 2)` forces all warnings to errors, so we save the current options to an
+    # object which is called on function exit. This way e.g. parsing errors in CSV tables do not
+    # result in globally changed options
+    current_opts <- options()
+    on.exit(options(current_opts), add = TRUE)
     op <- options(warn = 2)
     fd <- try(readr::read_csv(fqfn, comment = COMMENT_CHAR, col_types = col_types, ...))
     options(op)
@@ -433,7 +437,7 @@ chunk_inputs <- function(chunks = find_chunks()$name, call_flag = driver.DECLARE
 #' @return Character vector of inputs.
 #' @export
 inputs_of <- function(chunks) {
-  if(is.null(chunks) || chunks == "") return(NULL)
+  if(is.null(chunks) || length(chunks) == 0 || any(chunks == "")) return(NULL)
   chunk_inputs(chunks)$input
 }
 
@@ -479,8 +483,65 @@ chunk_outputs <- function(chunks = find_chunks()$name, call_flag = driver.DECLAR
 #' @return Character vector of inputs.
 #' @export
 outputs_of <- function(chunks) {
-  if(is.null(chunks) || chunks == "") return(NULL)
+  if(is.null(chunks) || length(chunks) == 0 || any(chunks == "")) return(NULL)
   chunk_outputs(chunks)$output
+}
+
+
+#' chunks_info
+#'
+#' Get the description and details from a chunk from its /man*.Rd page.
+#' Currently setup to return info of all non-batch (xml) chunks.
+#'
+#' All non-batch chunk info can be retrieved with the following code:
+#' chunk_names <- find_chunks('^module_[a-zA-Z\\.]*_L.*$')
+#' bind_rows(lapply(chunk_names$name, chunks_info))
+#'
+#' @param chunkname The name of the chunk to extract details from
+#' @return Tibble with chunk name, details, and description
+#'
+#' @examples
+#' chunks_info("module_water_L1233.Elec_water")
+#' chunk_names <- find_chunks('^module_[a-zA-Z\\.]*_L.*$')
+#' bind_rows(lapply(chunk_names$name, chunks_info))
+#'
+#' @author Hassan Niazi, October 2022
+chunks_info <- function(chunkname) {
+  assertthat::assert_that(is.character(chunkname))
+
+  # Get .Rd filename
+  chunkname_Rd <- list.files(path = "man", pattern = chunkname, full.names = TRUE, recursive = TRUE)
+
+  # There should only be one .Rd file per chunk
+  assert_that(length(chunkname_Rd) == 1,
+              msg = paste0("Numbers of .Rd files for ", chunkname, " is not equal to 1"))
+
+  # Read in documentation
+  lines <- readLines(chunkname_Rd)
+
+  # Search for description and details in documentation
+  for (l in 1:length(lines)) {
+    # If we find description label, read it in until closing bracket
+    if (lines[l] == "\\description{") {
+      ldes <- l + 1
+      while (lines[ldes] != "}"){
+        ldes <- ldes + 1
+      }
+      des <- paste(lines[(l+1):(ldes-1)], collapse = " ")
+    }
+    # If we find details label, read it in until closing bracket
+    else if (lines[l] == "\\details{"){
+      ldet = l
+      ldet <- l + 1
+      while (lines[ldet] != "}"){
+        ldet <- ldet + 1
+      }
+      det <- paste(lines[(l+1):(ldet-1)], collapse = " ")
+    }
+    l <- l + 1
+  }
+  # Return the description and details string if they exist, empty string if not
+  return(tibble(name = chunkname, description = get0("des", mode = "character"), details = get0("det", mode = "character")))
 }
 
 #' screen_forbidden
@@ -498,9 +559,9 @@ outputs_of <- function(chunks) {
 #' @author RL 19 Apr 2017
 #' @importFrom utils capture.output
 screen_forbidden <- function(fn) {
-  forbidden <- c("(?<!error_no_)match(?!es)", "ifelse",
+  forbidden <- c("(?<!error_no_)match(?!es)\\s*\\(", "ifelse",
                  "melt", "cast",
-                 "rbind(?!list)", "cbind", "merge",
+                 "rbind(?!list)", "cbind", "merge\\s*\\(",
                  "read\\.csv", "write\\.csv",
                  "summarise_each", "mutate_each")
 
@@ -533,6 +594,50 @@ screen_forbidden <- function(fn) {
   # General screen-forbidden search, single lines only
   for(f in unique(forbidden)) {
     bad <- grep(f, code, perl = TRUE)
+    if(length(bad) > 0) {
+      rslt <- rbind(rslt,
+                    cbind(f, code[bad]))
+    }
+  }
+  rslt
+}
+
+
+#' screen_years
+#'
+#' Screen a function for hardcoded years.
+#'
+#' Years should be declared as constants, not hardcoded.
+#'
+#' @param fn The function to be tested. This is the actual function object, not
+#' the name of the function.
+#' @return Nx2 Character matrix of flagged lines and the test that tripped them
+#' (empty vector, if none)
+#' @author KVC 10 Mar 2026
+#' @importFrom utils capture.output
+screen_years <- function(fn) {
+  forbidden <- seq(1975, 2100, by=1)
+  forbidden <- paste0(" ", forbidden)
+
+  code <- capture.output(fn)
+  code <- gsub("#.*$", "", code)      # remove comments
+  code <- gsub('"[^"]*"', "", code)   # remove double quoted material
+  code <- gsub("'[^']*'", "", code)   # remove single quoted material
+
+  # General screen-years search, single lines only
+  rslt <- character()
+  for(f in unique(forbidden)) {
+    initial_screen <- grep(f, code, perl = TRUE)
+
+    bad <- integer()
+    for( s in initial_screen ) {
+      string <- code[s]
+      # Years are allowed in `gdp_deflator`, so remove from the list of issues
+      if(!grepl("gdp_deflator", string) & !grepl("add_comments", string)) {
+        bad <- c(bad, s)
+      }
+    }
+
     if(length(bad) > 0) {
       rslt <- rbind(rslt,
                     cbind(f, code[bad]))

@@ -102,35 +102,35 @@ public:
     virtual void copyParam( const IInput* aInput,
                             const int aPeriod );
 
-    virtual void completeInit( const std::string& aRegionName,
-                               const std::string& aSectorName,
-                               const std::string& aSubsectorName,
-                               const std::string& aTechName,
+    virtual void completeInit( const gcamstr& aRegionName,
+                               const gcamstr& aSectorName,
+                               const gcamstr& aSubsectorName,
+                               const gcamstr& aTechName,
                                const IInfo* aTechInfo );
 
-    virtual void initCalc( const std::string& aRegionName,
-                           const std::string& aSectorName,
+    virtual void initCalc( const gcamstr& aRegionName,
+                           const gcamstr& aSectorName,
                            const bool aIsNewInvestmentPeriod,
                            const bool aIsTrade,
                            const IInfo* aTechInfo,
                            const int aPeriod );
 
-    virtual double getCO2EmissionsCoefficient( const std::string& aGHGName,
+    virtual double getCO2EmissionsCoefficient( const gcamstr& aGHGName,
                                              const int aPeriod ) const;
     
     virtual double getPhysicalDemand( const int aPeriod ) const;
     
     virtual double getCarbonContent( const int aPeriod ) const;
     
-    virtual double getPrice( const std::string& aRegionName,
+    virtual double getPrice( const gcamstr& aRegionName,
                              const int aPeriod ) const;
 
-    virtual void setPrice( const std::string& aRegionName,
+    virtual void setPrice( const gcamstr& aRegionName,
                            const double aPrice,
                            const int aPeriod );
 
     virtual void setPhysicalDemand( const double aPhysicalDemand,
-                                    const std::string& aRegionName,
+                                    const gcamstr& aRegionName,
                                     const int aPeriod );
 
     virtual double getCoefficient( const int aPeriod ) const;
@@ -146,8 +146,6 @@ public:
 
     virtual double getPriceElasticity( const int aPeriod ) const;
 
-    virtual double getTechChange( const int aPeriod ) const;
-
     virtual void copyParamsInto( InputTax& aInput,
                                  const int aPeriod ) const;
 
@@ -160,15 +158,11 @@ protected:
         MiniCAMInput,
         
         //! Physical Demand.
-        DEFINE_VARIABLE( ARRAY | STATE | NOT_PARSABLE, "physical-demand", mPhysicalDemand, objects::TechVintageVector<Value> ),
-        
-        //! Current coefficient after adjustments have been made by the technology's
-        //! capture component.
-        DEFINE_VARIABLE( ARRAY | NOT_PARSABLE, "current-coef", mAdjustedCoefficients, objects::TechVintageVector<Value> )
+        DEFINE_VARIABLE( ARRAY | STATE | NOT_PARSABLE, "physical-demand", mPhysicalDemand, objects::TechVintageVector<Value> )
     )
 
     //! Stash the current sector name for use in setPhysicalDemand
-    std::string mSectorName;
+    gcamstr mSectorName;
 private:
     const static std::string XML_REPORTING_NAME; //!< tag name for reporting xml db 
 };

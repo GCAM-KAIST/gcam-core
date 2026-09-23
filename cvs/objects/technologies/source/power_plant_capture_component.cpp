@@ -62,8 +62,6 @@ extern Scenario* scenario;
 PowerPlantCaptureComponent::PowerPlantCaptureComponent()
 {
     mRemoveFraction = 0;
-    mCaptureEnergy = 0;
-    mNonEnergyCostPenalty = 0;
 }
 
 PowerPlantCaptureComponent::~PowerPlantCaptureComponent() {
@@ -79,7 +77,6 @@ void PowerPlantCaptureComponent::copy( const PowerPlantCaptureComponent& aOther 
     mStorageMarket = aOther.mStorageMarket;
     mTargetGas = aOther.mTargetGas;
     mRemoveFraction = aOther.mRemoveFraction;
-    mNonEnergyCostPenalty = aOther.mNonEnergyCostPenalty;
 }
 
 bool PowerPlantCaptureComponent::isSameType( const std::string& aType ) const {
@@ -105,8 +102,9 @@ const string& PowerPlantCaptureComponent::getXMLName() const {
     return getXMLNameStatic();
 }
 
-const string& PowerPlantCaptureComponent::getName() const {
-    return getXMLNameStatic();
+const gcamstr& PowerPlantCaptureComponent::getName() const {
+    const static gcamstr NAME(getXMLNameStatic());
+    return NAME;
 }
 
 void PowerPlantCaptureComponent::toDebugXML( const int aPeriod,
@@ -116,14 +114,12 @@ void PowerPlantCaptureComponent::toDebugXML( const int aPeriod,
     XMLWriteOpeningTag( getXMLNameStatic(), aOut, aTabs );
     XMLWriteElement( mStorageMarket, "storage-market", aOut, aTabs );
     XMLWriteElement( mRemoveFraction, "remove-fraction", aOut, aTabs );
-    XMLWriteElement( mCaptureEnergy, "capture-energy", aOut, aTabs );
-    XMLWriteElement( mNonEnergyCostPenalty, "non-energy-penalty", aOut, aTabs );
     XMLWriteElement( mSequesteredAmount[ aPeriod ], "sequestered-amount", aOut, aTabs );
     XMLWriteClosingTag( getXMLNameStatic(), aOut, aTabs );
 }
 
-void PowerPlantCaptureComponent::completeInit( const string& aRegionName,
-                                               const string& aSectorName )
+void PowerPlantCaptureComponent::completeInit( const gcamstr& aRegionName,
+                                               const gcamstr& aSectorName )
 {
     // Add the storage market as a dependency of the sector. This is because
     // this sector will have to be ordered first so that the total demand and
@@ -146,9 +142,8 @@ void PowerPlantCaptureComponent::completeInit( const string& aRegionName,
     }
 }
 
-void PowerPlantCaptureComponent::initCalc( const string& aRegionName,
-                                           const string& aSectorName,
-                                           const string& aFuelName,
+void PowerPlantCaptureComponent::initCalc( const gcamstr& aRegionName,
+                                           const gcamstr& aSectorName,
                                            const int aPeriod )
 {
 }
@@ -160,8 +155,8 @@ void PowerPlantCaptureComponent::initCalc( const string& aRegionName,
  * \param aPeriod 
  * \return storage cost
  */
-double PowerPlantCaptureComponent::getStorageCost( const string& aRegionName,
-                                                   const string& aGHGName,
+double PowerPlantCaptureComponent::getStorageCost( const gcamstr& aRegionName,
+                                                   const gcamstr& aGHGName,
                                                    const int aPeriod ) const
 {
     if( aGHGName != mTargetGas ){
@@ -192,7 +187,7 @@ double PowerPlantCaptureComponent::getStorageCost( const string& aRegionName,
  * \param aGHGName 
  * \return remove fraction
  */
-double PowerPlantCaptureComponent::getRemoveFraction( const string& aGHGName ) const {
+double PowerPlantCaptureComponent::getRemoveFraction( const gcamstr& aGHGName ) const {
     return aGHGName == mTargetGas ? mRemoveFraction : 0;
 }
 
@@ -205,8 +200,8 @@ double PowerPlantCaptureComponent::getRemoveFraction( const string& aGHGName ) c
  * \param aPeriod 
  * \return emissions sequestered
  */
-double PowerPlantCaptureComponent::calcSequesteredAmount( const string& aRegionName,
-                                                          const string& aGHGName,
+double PowerPlantCaptureComponent::calcSequesteredAmount( const gcamstr& aRegionName,
+                                                          const gcamstr& aGHGName,
                                                           const double aTotalEmissions,
                                                           const int aPeriod )
 {
@@ -234,7 +229,7 @@ double PowerPlantCaptureComponent::calcSequesteredAmount( const string& aRegionN
  * \param aPeriod 
  * \return sequestered amount
  */
-double PowerPlantCaptureComponent::getSequesteredAmount( const string& aGHGName,
+double PowerPlantCaptureComponent::getSequesteredAmount( const gcamstr& aGHGName,
                                                          const bool aGetGeologic,
                                                          const int aPeriod ) const 
 {
@@ -243,87 +238,4 @@ double PowerPlantCaptureComponent::getSequesteredAmount( const string& aGHGName,
         return mSequesteredAmount[ aPeriod ];
     }
     return 0;
-}
-
-/*! \brief Adjust the set of inputs for a technology for the costs and
-*          efficiency losses due to the capture component.
-* \param aRegionName Name of the region.
-* \param aInputs Vector of technology inputs.
-* \param aPeriod Model period.
-*/
-void PowerPlantCaptureComponent::adjustInputs( const string& aRegionName,
-                                               vector<IInput*>& aInputs,
-                                               const int aPeriod ) const
-{
-    // TODO: Improve this code!
-    double baseEnergyIntensity = 0;
-    double effectiveEnergyIntensity = 0;
-    double fuelEmissCoef = 0;
-
-    // Loop through the inputs and search for energy inputs.
-    for( unsigned int i = 0; i < aInputs.size(); ++i ){
-        if( aInputs[ i ]->hasTypeFlag( IInput::ENERGY ) ){
-            // Store the unadjusted coefficient.
-            // TODO: Handle multiple energy inputs.
-            baseEnergyIntensity = aInputs[ i ]->getCoefficient( aPeriod );
-            // TODO: Unhardcode has name.
-            fuelEmissCoef = aInputs[ i ]->getCO2EmissionsCoefficient( mTargetGas, aPeriod );
-            adjustEnergyInput( aInputs[ i ], aPeriod );
-            effectiveEnergyIntensity = aInputs[ i ]->getCoefficient( aPeriod );
-        }
-    }
-
-    // Now adjust the non-energy input.
-    // TODO: What if an energy input wasn't found?
-    for( unsigned int i = 0; i < aInputs.size(); ++i ){
-        if( aInputs[ i ]->hasTypeFlag( IInput::CAPITAL ) ){
-            adjustNonEnergyInput( aInputs[ i ], aRegionName, baseEnergyIntensity,
-                                  effectiveEnergyIntensity, fuelEmissCoef, aPeriod );
-        }
-    }
-}
-
-void PowerPlantCaptureComponent::adjustEnergyInput( IInput* aEnergyInput,
-                                                    const int aPeriod ) const
-{
-    assert( aEnergyInput > 0 );
-
-    // Calculate effective intensity: This increases the intensity by first converting
-	// to an efficiency then subtracting by the product of capture energy, CO2 coefficient
-	// and removal fraction, and finally converting back to an intensity.
- 
-	double adjustedIntensity = 1/(1/aEnergyInput->getCoefficient( aPeriod ) 
-	                          - mCaptureEnergy
-	                          * aEnergyInput->getCO2EmissionsCoefficient( mTargetGas, aPeriod )
-	                          * mRemoveFraction);
-
-    aEnergyInput->setCoefficient( adjustedIntensity, aPeriod );
-}
-
-void PowerPlantCaptureComponent::adjustNonEnergyInput( IInput* aNonEnergyInput,
-                                                       const string& aRegionName,
-                                                       const double aBaseEnergyIntensity,
-                                                       const double aEffectiveEnergyIntensity,
-                                                       const double aFuelEmissCoef,
-                                                       const int aPeriod ) const
-{
-    assert( aBaseEnergyIntensity >= 0 );
-    assert( aEffectiveEnergyIntensity >= 0 );
-    assert( aFuelEmissCoef >= 0 );
-    assert( aEffectiveEnergyIntensity >= aBaseEnergyIntensity );
-
-    // Calculate the "a" term.
-    const double a =  aBaseEnergyIntensity * aFuelEmissCoef * mRemoveFraction;
-    
-    // A must be positive.
-    assert( a >= 0 );   
-    
-    // Calculate the total non-energy cost.
-    const double totalNonEnergyCost = ( aNonEnergyInput->getPrice( aRegionName, aPeriod )
-                                      + a * mNonEnergyCostPenalty ) * aEffectiveEnergyIntensity
-                                      / aBaseEnergyIntensity;
-
-    // Total non-energy cost is greater or equal to zero.
-    assert( totalNonEnergyCost >= 0 );
-    aNonEnergyInput->setPrice( aRegionName, totalNonEnergyCost, aPeriod );
 }

@@ -72,6 +72,28 @@ module_energy_L226.en_distribution <- function(command, ...) {
     L126.IO_R_electd_F_Yh <- get_data(all_data, "L126.IO_R_electd_F_Yh")
     L126.IO_R_gaspipe_F_Yh <- get_data(all_data, "L126.IO_R_gaspipe_F_Yh")
 
+
+    # ===================================================
+    # Remove backup electricity sector (by default)
+
+    remove_backup_sector <- function(data, type = "global") {
+      data %>%
+        filter(!(supplysector %in% energy.BACKUP_SECTORS))
+    }
+
+    if(energy.ELEC_USE_BACKUP) {
+      # DO NOTHING
+    } else {
+      # REMOVE BACKUP ELECTRICITY SECTORS
+      A26.sector %<>% remove_backup_sector
+      A26.subsector_logit %<>% remove_backup_sector
+      A26.subsector_shrwt %<>% remove_backup_sector
+      A26.subsector_interp %<>% remove_backup_sector
+      A26.globaltech_eff %<>% remove_backup_sector
+      A26.globaltech_cost %<>% remove_backup_sector
+      A26.globaltech_shrwt %<>% remove_backup_sector
+    }
+
     # ===================================================
 
     # 2. Build tables for CSVs
@@ -144,8 +166,8 @@ module_energy_L226.en_distribution <- function(command, ...) {
     A26.globaltech_eff %>%
       gather_years(value_col = "efficiency") %>%
       complete(nesting(supplysector, subsector, technology, minicam.energy.input), year = c(year, MODEL_BASE_YEARS, MODEL_FUTURE_YEARS)) %>%
-      arrange(supplysector, year) %>%
-      group_by(supplysector) %>%
+      arrange(supplysector, subsector, technology, year) %>%
+      group_by(supplysector, subsector, technology, minicam.energy.input) %>%
       mutate(efficiency = approx_fun(as.numeric(year), efficiency)) %>%
       ungroup() %>%
       filter(year %in% c(MODEL_BASE_YEARS, MODEL_FUTURE_YEARS)) %>%
@@ -158,8 +180,8 @@ module_energy_L226.en_distribution <- function(command, ...) {
     A26.globaltech_cost %>%
       gather_years(value_col = "input.cost") %>%
       complete(nesting(supplysector, subsector, technology, minicam.non.energy.input), year = c(year, MODEL_BASE_YEARS, MODEL_FUTURE_YEARS)) %>%
-      arrange(supplysector, year) %>%
-      group_by(supplysector) %>%
+      arrange(supplysector, subsector, technology, year) %>%
+      group_by(supplysector, subsector, technology, minicam.non.energy.input) %>%
       mutate (input.cost = approx_fun(as.numeric(year), input.cost)) %>%
       ungroup() %>%
       filter(year %in% c(MODEL_BASE_YEARS, MODEL_FUTURE_YEARS)) %>%
@@ -168,12 +190,13 @@ module_energy_L226.en_distribution <- function(command, ...) {
       mutate(input.cost = round(input.cost, DIGITS_COST)) ->
       L226.GlobalTechCost_en
 
-    FCR <- (socioeconomics.DEFAULT_INTEREST_RATE * (1+socioeconomics.DEFAULT_INTEREST_RATE)^socioeconomics.INDUSTRY_CAP_PAYMENTS) /
-      ((1+socioeconomics.DEFAULT_INTEREST_RATE)^socioeconomics.INDUSTRY_CAP_PAYMENTS -1)
     L226.GlobalTechCost_en %>%
       # we only want to track investments in backup electricity, not cost adders or distribution networks (yet)
       filter(grepl("backup", sector.name)) %>%
-      mutate(capital.coef = socioeconomics.INDUSTRY_CAPITAL_RATIO / FCR,
+      mutate(capital.ratio = socioeconomics.INDUSTRY_CAPITAL_RATIO,
+             interest.rate = socioeconomics.DEFAULT_INTEREST_RATE,
+             payback.years = socioeconomics.INDUSTRY_CAP_PAYMENTS,
+             invest.unit.conversion = 1,
              tracking.market = socioeconomics.EN_CAPITAL_MARKET_NAME,
              # vintaging is active so no need for depreciation
              depreciation.rate = 0) %>%
@@ -185,7 +208,7 @@ module_energy_L226.en_distribution <- function(command, ...) {
       gather_years(value_col = "share.weight") %>%
       complete(nesting(supplysector, subsector, technology), year = c(year, MODEL_BASE_YEARS, MODEL_FUTURE_YEARS)) %>%
       arrange(supplysector, year) %>%
-      group_by(supplysector) %>%
+      group_by(supplysector,subsector, technology) %>%
       mutate (share.weight = approx_fun(as.numeric(year), share.weight)) %>%
       ungroup() %>%
       filter(year %in% c(MODEL_BASE_YEARS, MODEL_FUTURE_YEARS)) %>%
@@ -205,7 +228,7 @@ module_energy_L226.en_distribution <- function(command, ...) {
 
     # repeat final year's ownuse ratio into future years and append future years to base years (could perhaps be tied to industrial CHP...but also AUTOELEC)
     L226.IO_R_elecownuse_F_Yh %>%
-      filter(year == max(MODEL_BASE_YEARS)) %>%
+      filter(year == MODEL_FINAL_BASE_YEAR) %>%
       repeat_add_columns(tibble("year" = MODEL_FUTURE_YEARS)) %>%
       select(-year.x) %>%
       rename(year = year.y) %>%
@@ -226,7 +249,7 @@ module_energy_L226.en_distribution <- function(command, ...) {
 
     # Copy final base year value to future periods
     L226.IO_R_electd_F_Yh %>%
-      filter(year == max(MODEL_BASE_YEARS)) %>%
+      filter(year == MODEL_FINAL_BASE_YEAR) %>%
       repeat_add_columns(tibble("year" = MODEL_FUTURE_YEARS)) %>%
       select(-year.x) %>%
       rename(year = year.y) ->
@@ -235,7 +258,7 @@ module_energy_L226.en_distribution <- function(command, ...) {
     # append assumed techchange value and calculate decrease in future energy use
     L226.IO_R_electd_F_Yfut %>%
       left_join(A_regions, by = "GCAM_region_ID") %>%
-      mutate(value = value * ((1 - elect_td_techchange) ^ (year - max(MODEL_BASE_YEARS)))) %>%
+      mutate(value = value * ((1 - elect_td_techchange) ^ (year - MODEL_FINAL_BASE_YEAR))) %>%
       select(GCAM_region_ID, sector, fuel, value, year) %>%
       bind_rows(L226.IO_R_electd_F_Yh, .) ->
       L226.IO_R_electd_F_Y
@@ -271,7 +294,7 @@ module_energy_L226.en_distribution <- function(command, ...) {
 
     # Generate future year gas pipeline energy use ratios by holding final base year value constant
     L226.IO_R_gaspipe_F_Yh %>%
-      filter(year == max(MODEL_BASE_YEARS)) %>%
+      filter(year == MODEL_FINAL_BASE_YEAR) %>%
       repeat_add_columns(tibble("year" = MODEL_FUTURE_YEARS)) %>%
       select(-year.x) %>%
       rename(year = year.y) ->

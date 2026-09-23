@@ -19,13 +19,16 @@
 #' The corresponding file in the original data system was \code{L210.resources.R} (energy level2).
 #' @details Resource market information, prices, TechChange parameters, supply curves, and environmental costs.
 #' @importFrom assertthat assert_that
-#' @importFrom dplyr bind_rows distinct filter if_else mutate select semi_join
+#' @importFrom dplyr bind_rows distinct filter if_else mutate mutate_if select semi_join
 #' @author RLH November 2017
 module_energy_L210.resources <- function(command, ...) {
-  if(command == driver.DECLARE_INPUTS) {
-    return(c(FILE = "common/GCAM_region_names",
+
+  MODULE_INPUTS <-
+           c(FILE = "common/GCAM_region_names",
              FILE = "energy/A_regions",
-             FILE = "energy/A10.rsrc_info",
+             FILE = "energy/A10.rsrc_info_fossils",
+             FILE = "energy/A10.rsrc_info_renewables_others",
+             FILE = "energy/A10.rsrc_info_uranium",
              FILE = "energy/A10.subrsrc_info",
              FILE = "energy/A10.TechChange",
              FILE = "energy/A10.TechChange_SSPs",
@@ -49,9 +52,11 @@ module_energy_L210.resources <- function(command, ...) {
              "L117.RsrcCurves_EJ_R_tradbio",
              "L120.RsrcCurves_EJ_R_offshore_wind",
              "L120.TechChange_offshore_wind",
-             "L102.pcgdp_thous90USD_Scen_R_Y"))
-  } else if(command == driver.DECLARE_OUTPUTS) {
-    return(c("L210.Rsrc",
+             "L102.pcgdp_thous90USD_Scen_R_Y")
+
+  MODULE_OUTPUTS <-
+           c("L210.Rsrc",
+             "L210.rsrc_info",
              "L210.RenewRsrc",
              "L210.UnlimitRsrc",
              "L210.RsrcPrice",
@@ -93,7 +98,12 @@ module_energy_L210.resources <- function(command, ...) {
              "L210.ResTechShrwt",
              "L210.ResTechShrwt_EGS",
              "L210.ResTechCoef",
-             "L210.ResTechCost"))
+             "L210.ResTechCost")
+    if(command == driver.DECLARE_INPUTS) {
+      return(MODULE_INPUTS)
+    } else if(command == driver.DECLARE_OUTPUTS) {
+      return(MODULE_OUTPUTS)
+
   } else if(command == driver.MAKE) {
 
     # Silence package checks
@@ -103,55 +113,80 @@ module_energy_L210.resources <- function(command, ...) {
       L210.RsrcEnvironCost_SSP5 <- available <- cal.production <- capacity.factor <- curve.exponent <-
       resource <- environCost <- extractioncost <- fuel <- gdpSupplyElast <- grade <- market <- value <-
       maxSubResource <- mid.price <- object <- `output-unit` <- `price-unit` <- region <- resource <-
-      resource_type <- scenario <-subResourceCapacityFactor <- subresource <- subresource_type <-
+      resource_type <- scenario <-subResourceCapacityFactor <- subresource <- subresource_type <- resource.reserve.technology <-
       minicam.non.energy.input <- input.cost <- cal.reserve <- renewresource <- sub.renewable.resource <-
       avg.prod.lifetime <- timestep <- lifetime <- year_operate <- final_year <- GCAM_region_ID <-
       sector <- smooth.renewable.subresource <- tech.change <- reserve.subresource <- technology <- prod_value <- NULL
 
     all_data <- list(...)[[1]]
 
-    # Load required inputs
-    GCAM_region_names <- get_data(all_data, "common/GCAM_region_names")
-    A_regions <- get_data(all_data, "energy/A_regions")
-    A10.rsrc_info <- get_data(all_data, "energy/A10.rsrc_info", strip_attributes = TRUE) %>%
-      gather_years
-    A10.subrsrc_info <- get_data(all_data, "energy/A10.subrsrc_info", strip_attributes = TRUE)
-    A10.TechChange <- get_data(all_data, "energy/A10.TechChange") %>%
-      gather_years
-    A10.TechChange_SSPs <- get_data(all_data, "energy/A10.TechChange_SSPs") %>%
-      gather_years
-    A10.EnvironCost_SSPs <- get_data(all_data, "energy/A10.EnvironCost_SSPs") %>%
-      gather_years
-    A15.roofPV_TechChange <- get_data(all_data, "energy/A15.roofPV_TechChange") %>%
-      gather_years
-    A10.ResSubresourceProdLifetime <- get_data(all_data, "energy/A10.ResSubresourceProdLifetime", strip_attributes = TRUE)
-    A10.SubresourcePriceAdder <- get_data(all_data, "energy/A10.SubresourcePriceAdder") %>%
-      gather_years
-    A10.ResReserveTechLifetime <- get_data(all_data, "energy/A10.ResReserveTechLifetime", strip_attributes = TRUE)
-    A10.ResReserveTechDeclinePhase <- get_data(all_data, "energy/A10.ResReserveTechDeclinePhase", strip_attributes = TRUE)
-    A10.ResReserveTechProfitShutdown <- get_data(all_data, "energy/A10.ResReserveTechProfitShutdown", strip_attributes = TRUE)
-    A21.globalrsrctech_cost <- get_data(all_data, "energy/A21.globalrsrctech_cost", strip_attributes = TRUE) %>%
-      gather_years(value_col = "input.cost")
-    A21.globalrsrctech_coef <- get_data(all_data, "energy/A21.globalrsrctech_coef", strip_attributes = TRUE) %>%
-      gather_years(value_col = "coefficient")
-    L111.RsrcCurves_EJ_R_Ffos <- get_data(all_data, "L111.RsrcCurves_EJ_R_Ffos", strip_attributes = TRUE)
-    L111.Prod_EJ_R_F_Yh <- get_data(all_data, "L111.Prod_EJ_R_F_Yh", strip_attributes = TRUE)
-    L112.RsrcCurves_Mt_R_U <- get_data(all_data, "L112.RsrcCurves_Mt_R_U", strip_attributes = TRUE)
-    L113.RsrcCurves_EJ_R_MSW <- get_data(all_data, "L113.RsrcCurves_EJ_R_MSW", strip_attributes = TRUE)
-    L114.RsrcCurves_EJ_R_wind <- get_data(all_data, "L114.RsrcCurves_EJ_R_wind", strip_attributes = TRUE)
-    L115.RsrcCurves_EJ_R_roofPV <- get_data(all_data, "L115.RsrcCurves_EJ_R_roofPV", strip_attributes = TRUE)
-    L116.RsrcCurves_EJ_R_geo <- get_data(all_data, "L116.RsrcCurves_EJ_R_geo", strip_attributes = TRUE)
-    L116.RsrcCurves_EJ_R_EGS <- get_data(all_data, "L116.RsrcCurves_EJ_R_EGS", strip_attributes = TRUE)
-    L117.RsrcCurves_EJ_R_tradbio <- get_data(all_data, "L117.RsrcCurves_EJ_R_tradbio", strip_attributes = TRUE)
-    L120.RsrcCurves_EJ_R_offshore_wind <- get_data(all_data, "L120.RsrcCurves_EJ_R_offshore_wind", strip_attributes = TRUE)
-    L120.TechChange_offshore_wind <- get_data(all_data, "L120.TechChange_offshore_wind", strip_attributes = TRUE )
-    L102.pcgdp_thous90USD_Scen_R_Y <- get_data(all_data, "L102.pcgdp_thous90USD_Scen_R_Y")
+    # Load required inputs ----
+    get_data_list(all_data, MODULE_INPUTS, strip_attributes = TRUE)
+
+
+    A10.rsrc_info_renewables_others <- A10.rsrc_info_renewables_others %>% gather_years
+    A10.rsrc_info_uranium <- A10.rsrc_info_uranium %>% gather_years
+    A10.TechChange <- A10.TechChange %>% gather_years
+    A10.TechChange_SSPs <- A10.TechChange_SSPs %>% gather_years
+    A10.EnvironCost_SSPs <- A10.EnvironCost_SSPs %>% gather_years
+    A15.roofPV_TechChange <- A15.roofPV_TechChange %>% gather_years
+    A10.SubresourcePriceAdder <- A10.SubresourcePriceAdder %>% gather_years
+    A21.globalrsrctech_cost <- A21.globalrsrctech_cost %>% gather_years(value_col = "input.cost")
+    A21.globalrsrctech_coef <- A21.globalrsrctech_coef %>% gather_years(value_col = "coefficient")
+
+
+    # Process resources prices data
+    # Source: bp-stats-review-2021-all-data.xlsx
+    # The specific regions, or region averages, used for global marker price described in the input file
+
+    # unit and currency conversion of resource prices into 1975$/GJ
+    A10.rsrc_info_fossils %>%
+      mutate(energy.conv = case_when(resource == "natural gas" ~ CONV_MMBTU_GJ,
+                                     resource == "crude oil" ~ CONV_BBL_GJ,
+                                     resource == "coal" ~ CONV_COALTONNE_GJ,
+                                     TRUE ~ NA_real_),
+             # convert each year as fossil prices are nominal USD
+             currency.conv = gdp_deflator(1975, year),
+             price = price * currency.conv / energy.conv,
+             `price-unit` = "1975$/GJ") %>%
+      # we are taking the mean price across the "source" dimension in case we have
+      # multiple marker price markets for a given resource
+      group_by(resource, resource_type, market, `output-unit`, `price-unit`, year) %>%
+      summarize(value = mean(price)) %>%
+      # Note: taking advantage of the standard dplyr behavior to "pop" the last grouping: year
+      # which is what we want so that we can calculate moving average prices across those years
+      mutate(moving_avg = Moving_average_lagged(value, periods = energy.FUEL_PRICES_MEAN_PERIOD)) %>%
+      ungroup() %>%
+      # filling earlier years with just the annual price
+      mutate(value = if_else(is.na(moving_avg), value, moving_avg)) %>%
+      select(-moving_avg) ->
+      A10.rsrc_info_fossils_processed_avg
+
+    # uranium unit conversion to 1975$
+    A10.rsrc_info_uranium %>%
+      mutate(# the regex parses the currency unit to allow automatic currency deflation to $1975
+        value = value * gdp_deflator(1975, as.numeric(unique(unlist(regmatches(`price-unit`, gregexpr("[[:digit:]]+", `price-unit`)))))),
+        `price-unit` = gsub(unique(unlist(regmatches(`price-unit`, gregexpr("[[:digit:]]+", `price-unit`)))), "1975", `price-unit`)) -> A10.rsrc_info_uranium_processed
+
+
+    # merge individually prepared resource prices of fossils, renewables, and uranium into one A10.rsrc_info data object
+    A10.rsrc_info_merged <- bind_rows(A10.rsrc_info_fossils_processed_avg,
+                                      A10.rsrc_info_renewables_others,
+                                      A10.rsrc_info_uranium_processed
+                                      )
+
+    # Interpolate and extrapolate missing historical years
+    A10.rsrc_info <- A10.rsrc_info_merged %>%
+      complete(nesting(resource, resource_type, market, `output-unit`, `price-unit`), year = c(HISTORICAL_YEARS)) %>%
+      group_by(resource, resource_type, market, `output-unit`, `price-unit`) %>%
+      mutate(value = approx_fun(year, value, rule = 2)) %>%
+      ungroup()
 
     # Check for calibrated resource prices for final historical model year.
-    # Otherwise, price behavior is undefinded, and so stop process.
+    # Otherwise, price behavior is undefined, and so stop process.
     # There should be calibrated prices for all historical model years for
     # full consistency, however.
-    if(!(MODEL_FINAL_BASE_YEAR %in% c(unique(A10.rsrc_info$year)))){
+    if(!(FINAL_HISTORICAL_YEAR %in% c(unique(A10.rsrc_info$year)))){
       stop("No calibrated prices for resources in final historical year")
     }
 
@@ -160,61 +195,19 @@ module_energy_L210.resources <- function(command, ...) {
     # Kind of a level 1.5 we are going to calculate / update historical energy
     # but the years we choose as the model base years matter
 
-    GCAM_timesteps <- diff(MODEL_BASE_YEARS)
-    start.year.timestep <- modeltime.PERIOD0_TIMESTEP
-    model_year_timesteps <- tibble(year = MODEL_BASE_YEARS, timestep = c(start.year.timestep, GCAM_timesteps))
-
-    # a pipelne helper function to help back calculate new additions to reserve
-    # from historical production
-    lag_prod_helper <- function(year, value, year_operate, final_year) {
-      ret <- value
-      for(i in seq_along(year)) {
-        if(i == 1) {
-          # first year assume all production in this vintage
-          ret[i] <- value[i]
-        } else if( year_operate[i] > final_year[i]) {
-          if(year_operate[i -1] >= final_year[i]) {
-            # retired
-            ret[i] <- 0
-          } else {
-            # final timestep that is operating so we must adjust the production
-            # by the number of years into the timestep it should have operated
-            # incase lifetime and timesteps do not neatly overlap
-            ret[i] <- ret[i - 1] * (year_operate[i] - final_year[i]) / (year_operate[i] - year_operate[i-1])
-          }
-        } else if(year_operate[i] > year[i]) {
-          # assume a vintage that as already invested continues at full
-          # capacity
-          ret[i] <- ret[i -1]
-        } else {
-          # to determine new investment we take the difference between
-          # what the total should be and subtract off production from
-          # previous vintages that are still operating
-          ret[i] <- 0
-          ret[i] <- pmax(value[i] - sum(ret[year_operate == year[i]]), 0)
-        }
-      }
-      ret
-    }
     # Back calculate reserve additions to be exactly enough given our historical production
     # and assumed production lifetime.  Note production lifetimes may not cover the entire
-    # historical period making the calculation a bit more tricky.  We use the lag_prod_helper
-    # to help project forward production by each historical vintage so we can take this into
-    # account.
+    # historical period and production may dip below capacity making the calculation a bit more
+    # tricky.  We use the module helper resource_reserve_back_calculate to project forward
+    # production by each historical vintage so we can take this into account.
+    # Note: because we are back calculating this our choice of MODEL_BASE_YEARS matters, which is
+    # why this is Level2 processing.
     L111.Prod_EJ_R_F_Yh %>%
-      filter(year %in% MODEL_BASE_YEARS) %>%
       left_join_error_no_match(select(A10.ResSubresourceProdLifetime, resource, lifetime = avg.prod.lifetime, reserve.subresource) %>% distinct(),
                                by=c("fuel" = "resource", "technology" = "reserve.subresource")) %>%
-      left_join_error_no_match(model_year_timesteps, by = c("year")) %>%
-      repeat_add_columns(tibble(year_operate = MODEL_BASE_YEARS)) %>%
-      mutate(final_year = pmin(MODEL_BASE_YEARS[length(MODEL_BASE_YEARS)], (year - timestep + lifetime))) %>%
-      filter(year_operate >= year - timestep + 1) %>%
-      group_by(GCAM_region_ID, sector, fuel, technology) %>%
-      mutate(value = lag_prod_helper(year, value, year_operate, final_year)) %>%
-      ungroup() %>%
-      filter(year == year_operate) %>%
-      mutate(value = value * lifetime) %>%
-      select(-lifetime, -timestep, -year_operate) ->
+      tidyr::nest(data = -c(GCAM_region_ID, sector, fuel, technology)) %>%
+      mutate(data = lapply(data, resource_reserve_back_calculate)) %>%
+      tidyr::unnest(cols = data) ->
       L210.Reserve_EJ_R_F_Yh
 
     # Given the mismatch between data sets for historical production / regional supply curves / and
@@ -258,7 +251,9 @@ module_energy_L210.resources <- function(command, ...) {
       L111.RsrcCurves_EJ_R_Ffos
 
     # A. Output unit, price unit, market
-    L210.rsrc_info <- A10.rsrc_info %>%
+    L210.rsrc_info <- A10.rsrc_info # just output the file without regions
+
+    L210.RsrcInfo <- A10.rsrc_info %>%
       # Repeat and add region to resource assumptions table
       repeat_add_columns(select(GCAM_region_names, region)) %>%
       # Remove traditional biomass from regions where it is not currently used
@@ -267,40 +262,41 @@ module_energy_L210.resources <- function(command, ...) {
       mutate(market = if_else(market == "regional", region, market))
 
     # L210.Rsrc: output unit, price unit, and market for depletable resources
-    L210.Rsrc <- L210.rsrc_info %>%
+    L210.Rsrc <- L210.RsrcInfo %>%
       filter(resource_type == "resource") %>%
       select(region, resource = resource, output.unit = `output-unit`, price.unit = `price-unit`, market) %>%
       distinct()
 
     # L210.RenewRsrc: output unit, price unit, and market for renewable resources
-    L210.RenewRsrc <- L210.rsrc_info %>%
+    L210.RenewRsrc <- L210.RsrcInfo %>%
       filter(resource_type == "renewresource") %>%
       select(region, renewresource = resource, output.unit = `output-unit`, price.unit = `price-unit`, market) %>%
       distinct()
 
     # L210.UnlimitRsrc: output unit, price unit, and market for unlimited resources
-    L210.UnlimitRsrc <- L210.rsrc_info %>%
+    L210.UnlimitRsrc <- L210.RsrcInfo %>%
       filter(resource_type == "unlimited-resource") %>%
       select(region, unlimited.resource = resource, output.unit = `output-unit`, price.unit = `price-unit`, market) %>%
       distinct()
 
     # L210.RsrcPrice: historical prices for depletable resources
-    L210.RsrcPrice <- L210.rsrc_info %>%
+    L210.RsrcPrice <- L210.RsrcInfo %>%
       filter(resource_type == "resource",
              year %in% MODEL_BASE_YEARS) %>%
       select(region, resource = resource, year, price = value)
 
     # L210.RenewRsrcPrice: historical prices for renewable resources
-    L210.RenewRsrcPrice <- L210.rsrc_info %>%
+    L210.RenewRsrcPrice <- L210.RsrcInfo %>%
       filter(resource_type == "renewresource",
              year %in% MODEL_BASE_YEARS) %>%
       select(region, renewresource = resource, year, price = value)
 
     # L210.UnlimitRsrcPrice: prices for unlimited resources
-    L210.UnlimitRsrcPrice <- L210.rsrc_info %>%
+    L210.UnlimitRsrcPrice <- L210.RsrcInfo %>%
       filter(resource_type == "unlimited-resource",
              year %in% MODEL_BASE_YEARS) %>%
       select(region, unlimited.resource = resource, year, price = value)
+
 
     # B. Tech change
     # Repeat and add region to assumed techchange tables
@@ -339,6 +335,15 @@ module_energy_L210.resources <- function(command, ...) {
     # Tech change in the SSPs
     # Repeat and add region vector to assumed techchange tables
     L210.rsrc_TechChange_SSPs <- A10.TechChange_SSPs %>%
+      # ensure we fill in tech change for any years not in the assumption file
+      complete(nesting(resource, subresource, SSP), year = c(year, MODEL_FUTURE_YEARS)) %>%
+      group_by(SSP, resource, subresource) %>%
+      # NOTE: interpolating is not appropriate for tech change values given the way they are
+      # applied to replicate behavior with addition timesteps we should fill the missing years
+      # with the next available value (`.direction = "up"`)
+      tidyr::fill(value, .direction = "up") %>%
+      ungroup() %>%
+      filter(year %in% MODEL_FUTURE_YEARS) %>%
       repeat_add_columns(GCAM_region_names) %>%
       # Add subresource type
       left_join_error_no_match(A10.subrsrc_info, by = c("resource", "subresource"))
@@ -394,18 +399,31 @@ module_energy_L210.resources <- function(command, ...) {
 
     L210.ReserveCalReserve_unoil <- L210.ReserveCalReserve %>% filter(reserve.subresource=="unconventional oil")
 
-    L210.ReserveCalReserve.uncon_other_reg <- L210.ReserveCalReserve %>%
-                                              filter(resource =="coal") %>%
-                                              filter(!region %in% c(unique(L210.ReserveCalReserve_unoil$region))) %>%
-                                              mutate(resource =paste0("crude oil"),reserve.subresource =paste0("unconventional oil"),cal.reserve=0)
+    L210.ReserveCalReserve %>%
+      # note using coal here just to ensure we get a structure of subresource one for each model region
+      # all the other information is reset below
+      filter(resource == "coal") %>%
+      filter(!region %in% c(unique(L210.ReserveCalReserve_unoil$region))) %>%
+      mutate(resource = "crude oil",
+             reserve.subresource = "unconventional oil",
+             cal.reserve = 0) ->
+      L210.ReserveCalReserve.uncon_other_reg
     L210.ReserveCalReserve <- bind_rows(L210.ReserveCalReserve,L210.ReserveCalReserve.uncon_other_reg)
+    # similarly fill unconventional oil zeros for L210.RsrcCalProd to satisfy error checking in the C++
+    L210.ReserveCalReserve.uncon_other_reg %>%
+      rename(subresource = reserve.subresource,
+             cal.production = cal.reserve) %>%
+      bind_rows(L210.RsrcCalProd, .) ->
+      L210.RsrcCalProd
 
     # D. Resource supply curves
     # L210.RsrcCurves_fos: supply curves of fossil resources
     L210.RsrcCurves_fos <- L111.RsrcCurves_EJ_R_Ffos %>%
       # Add region name
       left_join_error_no_match(GCAM_region_names, by = "GCAM_region_ID") %>%
-      mutate(available = round(available, energy.DIGITS_RESOURCE)) %>%
+      # Note: we give many digits here in case some grades had to be added to be able
+      # to cover calibrated historical production where such resolution will be needed
+      mutate(available = round(available, energy.DIGITS_CALOUTPUT)) %>%
       select(region, resource = resource, subresource, grade, available, extractioncost)
 
     # L210.RsrcCurves_U: supply curves of uranium resources
@@ -490,7 +508,7 @@ module_energy_L210.resources <- function(command, ...) {
       rename(resource = renewresource, subresource = sub.renewable.resource) %>%
       repeat_add_columns(tibble(year = MODEL_YEARS)) %>%
       mutate(technology = subresource,
-             share.weight = 1 ) %>%
+             share.weight = if_else(year %in% MODEL_BASE_YEARS, 0, 1) ) %>%
       select(LEVEL2_DATA_NAMES[["ResTechShrwt"]])
 
 
@@ -507,6 +525,18 @@ module_energy_L210.resources <- function(command, ...) {
       mutate(year.fillout = min(MODEL_BASE_YEARS),
              maxSubResource = 1) %>%
       select(LEVEL2_DATA_NAMES[["maxSubResource"]])
+
+    # A10.EnvironCost_SSPs doesn't have costs for new base-years
+    # Linearly extrapolate from zero to the value provided in the input file for 2100.
+    A10.EnvironCost_SSPs  <- A10.EnvironCost_SSPs %>%
+      complete(nesting(SSP, resource, reserve.subresource, resource.reserve.technology),
+               year = c(FINAL_HISTORICAL_YEAR, max(MODEL_YEARS))) %>%
+      dplyr::mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>%
+      complete(nesting(SSP, resource, reserve.subresource, resource.reserve.technology), year = c(FINAL_HISTORICAL_YEAR, MODEL_FUTURE_YEARS)) %>%
+      group_by(SSP, resource, reserve.subresource, resource.reserve.technology) %>%
+      mutate(value = approx_fun(year, value, rule = 2)) %>%
+      ungroup() %>%
+      filter(year %in% MODEL_FUTURE_YEARS)
 
     # L210.RsrcEnvironCost_SSPs: environmental cost for depletable resources in SSPs
     # Repeat and add region to assumed techchange tables
@@ -530,22 +560,30 @@ module_energy_L210.resources <- function(command, ...) {
     }
 
     # SSP4 is handled differently because of its region groupings - we will handle its precursors separately below
+    L210.pcgdp_max_base_year <- L102.pcgdp_thous90USD_Scen_R_Y %>%
+      filter(scenario == "SSP4",
+             year == FINAL_HISTORICAL_YEAR) %>%
+      # Add region name
+      left_join_error_no_match(GCAM_region_names, by = "GCAM_region_ID") %>%
+      mutate(value = value * gdp_deflator(2010, 1990))
+
     # Define high and low growth regions
     L210.high_reg <- get_ssp_regions(L102.pcgdp_thous90USD_Scen_R_Y, GCAM_region_names, "high")
     L210.low_reg <- get_ssp_regions(L102.pcgdp_thous90USD_Scen_R_Y, GCAM_region_names, "low")
 
-    L210.RsrcEnvironCost_SSP4 %>%
+    # Following code only adjusts SSP4 environmental costs to match the SSP4 storyline,
+    # where environmental costs are more strongly differentiated between regions
+    L210.RsrcEnvironCost_SSP4 <- L210.RsrcEnvironCost_SSP4 %>%
       # Set environmental costs for coal to 0 for low growth regions,
       # 10 * environcost for high growth regions
-      mutate(environCost = if_else(resource == "coal" & region %in% L210.low_reg, 0, environCost),
-             environCost = if_else(resource == "coal" & region %in% L210.high_reg, 10 * environCost, environCost)) %>%
+      mutate(input.cost = if_else(resource == "coal" & region %in% L210.low_reg, 0, input.cost),
+             input.cost = if_else(resource == "coal" & region %in% L210.high_reg, 10 * input.cost, input.cost)) %>%
       add_title("Environmental Costs for Depletable Resources: SSP4", overwrite = TRUE) %>%
       add_units("$/GJ") %>%
       add_comments("A10.EnvironCost_SSPs written to all regions") %>%
       add_comments("EnvironCost adjusted for high growth and low growth regions ") %>%
       add_legacy_name("L210.RsrcEnvironCost_SSP4", overwrite = TRUE) %>%
-      add_precursors("energy/A10.EnvironCost_SSPs", "common/GCAM_region_names", "energy/A10.subrsrc_info", "L102.pcgdp_thous90USD_Scen_R_Y") ->
-      L210.RsrcEnvironCost_SSP4
+      add_precursors("energy/A10.EnvironCost_SSPs", "common/GCAM_region_names", "energy/A10.subrsrc_info", "L102.pcgdp_thous90USD_Scen_R_Y")
 
     # Resource-reserve assumptions which just need to get copied to all regions and years
     A10.ResSubresourceProdLifetime %>%
@@ -577,13 +615,24 @@ module_energy_L210.resources <- function(command, ...) {
       select(LEVEL2_DATA_NAMES[["ResReserveTechProfitShutdown"]]) ->
       L210.ResReserveTechProfitShutdown
 
+    # interpolating tech costs to cover all model years
+    A21.globalrsrctech_cost %>%
+      complete(nesting(resource, reserve.subresource, resource.reserve.technology, minicam.non.energy.input),
+               year = c(year, MODEL_YEARS)) %>%
+      group_by(resource, reserve.subresource, resource.reserve.technology, minicam.non.energy.input) %>%
+      mutate(input.cost = approx_fun(year, input.cost, rule = 2)) %>%
+      ungroup() %>%
+      filter(year %in% MODEL_YEARS) -> A21.globalrsrctech_cost
+
     L210.ResSubresourceProdLifetime %>%
       mutate(resource.reserve.technology = reserve.subresource,
              invest_lifetime = avg.prod.lifetime / 2,
-             FCR = (socioeconomics.DEFAULT_INTEREST_RATE * (1+socioeconomics.DEFAULT_INTEREST_RATE)^invest_lifetime) / ((1+socioeconomics.DEFAULT_INTEREST_RATE)^invest_lifetime -1),
-             capital.coef = socioeconomics.RESOURCE_CAPITAL_RATIO / FCR,
-             minicam.non.energy.input = "investment-cost",
-             tracking.market = "capital") %>%
+             capital.ratio = socioeconomics.RESOURCE_CAPITAL_RATIO,
+             interest.rate = socioeconomics.DEFAULT_INTEREST_RATE,
+             payback.years = invest_lifetime,
+             invest.unit.conversion = 1,
+             minicam.non.energy.input = "resource-investment",
+             tracking.market = socioeconomics.EN_CAPITAL_MARKET_NAME) %>%
       repeat_add_columns(tibble(year = MODEL_YEARS)) %>%
       select(LEVEL2_DATA_NAMES[["ResReserveTechInvestmentInput"]]) ->
       L210.ResReserveTechInvestmentInput
@@ -592,13 +641,22 @@ module_energy_L210.resources <- function(command, ...) {
       repeat_add_columns(GCAM_region_names) %>%
       select(LEVEL2_DATA_NAMES[["ResReserveTechCost"]]) -> L210.ResTechCost
 
+    # write tech coefficients for the resource tech energy inputs
+    A21.globalrsrctech_coef %>%
+      complete(nesting(resource, reserve.subresource, resource.reserve.technology, minicam.energy.input), year = MODEL_YEARS) %>%
+      arrange(year) %>%
+      group_by(resource, reserve.subresource, resource.reserve.technology, minicam.energy.input) %>%
+      mutate(coefficient = approx_fun(year, coefficient, rule = 2)) %>%
+      ungroup() %>%
+      filter(year %in% MODEL_YEARS) -> A21.globalrsrctech_coef
+
     A21.globalrsrctech_coef %>%
       repeat_add_columns(GCAM_region_names) %>%
       select(LEVEL2_DATA_NAMES[["ResReserveTechCoef"]])-> L210.ResTechCoef
 
 
     # We need to make sure we have at least a shell technology for ALL resources
-    # and so we will just use the share weight table to facilatate doing that.
+    # and so we will just use the share weight table to facilitate doing that.
     A10.subrsrc_info %>%
       repeat_add_columns(GCAM_region_names) %>%
       repeat_add_columns(tibble(year = MODEL_YEARS)) %>%
@@ -607,7 +665,7 @@ module_energy_L210.resources <- function(command, ...) {
                 by = c("region", "resource", "subresource", "year")) %>%
       mutate(prod_value = if_else(is.na(prod_value), 0, prod_value),
              technology = subresource,
-             share.weight = if_else(year > MODEL_FINAL_BASE_YEAR | prod_value > 0, 1, 0)) %>%
+             share.weight = 1) %>%
       filter(year %in% MODEL_YEARS) %>%
       select(LEVEL2_DATA_NAMES[["ResTechShrwt"]]) ->
       L210.ResTechShrwt
@@ -623,7 +681,7 @@ module_energy_L210.resources <- function(command, ...) {
       bind_rows(filter(L210.ResTechShrwt, resource != "uranium"), .) ->
       L210.ResTechShrwt
 
-    # ===================================================
+        # ===================================================
 
     # Produce outputs
 
@@ -649,15 +707,28 @@ module_energy_L210.resources <- function(command, ...) {
       add_units("NA") %>%
       add_comments("A10.rsrc_info written to all regions") %>%
       add_legacy_name("L210.Rsrc") %>%
-      add_precursors("energy/A_regions", "common/GCAM_region_names", "energy/A10.rsrc_info") ->
+      add_precursors("energy/A_regions", "common/GCAM_region_names",
+                     "energy/A10.rsrc_info_fossils",
+                     "energy/A10.rsrc_info_renewables_others",
+                     "energy/A10.rsrc_info_uranium") ->
       L210.Rsrc
+
+    # Resource info for various resource markets including
+    # resource_type	market	output-unit	price-unit	year	value
+    L210.rsrc_info %>%
+      add_title("Market information for resources, including historical prices") %>%
+      add_units("1975$/unit") %>%
+      add_comments("A10.rsrc_info") %>%
+      add_legacy_name("A10.rsrc_info") %>%
+      same_precursors_as(L210.Rsrc) ->
+      L210.rsrc_info
 
     L210.RenewRsrc %>%
       add_title("Market information for renewable resources") %>%
       add_units("NA") %>%
       add_comments("A10.rsrc_info written to all regions") %>%
       add_legacy_name("L210.RenewRsrc") %>%
-      add_precursors("energy/A_regions", "common/GCAM_region_names", "energy/A10.rsrc_info") ->
+      same_precursors_as(L210.Rsrc)  ->
       L210.RenewRsrc
 
     L210.UnlimitRsrc %>%
@@ -665,7 +736,7 @@ module_energy_L210.resources <- function(command, ...) {
       add_units("NA") %>%
       add_comments("A10.rsrc_info written to all regions") %>%
       add_legacy_name("L210.UnlimitRsrc") %>%
-      add_precursors("energy/A_regions", "common/GCAM_region_names", "energy/A10.rsrc_info") ->
+      same_precursors_as(L210.Rsrc) ->
       L210.UnlimitRsrc
 
     L210.RsrcPrice %>%
@@ -892,15 +963,10 @@ module_energy_L210.resources <- function(command, ...) {
       same_precursors_as(L210.GrdRenewRsrcMax_EGS) ->
       L210.ResTechShrwt_EGS
 
-    return_data(L210.Rsrc, L210.RenewRsrc, L210.UnlimitRsrc, L210.RsrcPrice, L210.RenewRsrcPrice, L210.UnlimitRsrcPrice, L210.RsrcTechChange,
-                L210.SmthRenewRsrcTechChange, L210.SmthRenewRsrcTechChange_offshore_wind, L210.RsrcCalProd, L210.ReserveCalReserve, L210.RsrcCurves_fos, L210.RsrcCurves_U, L210.SmthRenewRsrcCurves_MSW,
-                L210.SmthRenewRsrcCurves_wind, L210.SmthRenewRsrcCurves_offshore_wind, L210.SmthRenewRsrcCurvesGdpElast_roofPV, L210.GrdRenewRsrcCurves_geo, L210.GrdRenewRsrcMax_geo,
-                L210.GrdRenewRsrcCurves_EGS, L210.GrdRenewRsrcMax_EGS, L210.GrdRenewRsrcCurves_tradbio, L210.GrdRenewRsrcMax_tradbio, L210.RsrcTechChange_SSP1,
-                L210.RsrcEnvironCost_SSP1, L210.RsrcTechChange_SSP2, L210.RsrcEnvironCost_SSP2, L210.RsrcTechChange_SSP3, L210.RsrcEnvironCost_SSP3,
-                L210.RsrcTechChange_SSP4, L210.RsrcEnvironCost_SSP4, L210.RsrcTechChange_SSP5, L210.RsrcEnvironCost_SSP5,
-                L210.ResSubresourceProdLifetime, L210.SubresourcePriceAdder, L210.ResReserveTechLifetime, L210.ResReserveTechDeclinePhase, L210.ResReserveTechProfitShutdown, L210.ResReserveTechInvestmentInput,
-                L210.ResTechShrwt, L210.ResTechShrwt_EGS, L210.ResTechCoef, L210.ResTechCost)
+    return_data(MODULE_OUTPUTS)
+
   } else {
     stop("Unknown command")
   }
 }
+

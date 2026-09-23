@@ -106,7 +106,7 @@ bool SecondaryOutput::isSameType( const string& aType ) const
     return aType == getXMLNameStatic();
 }
 
-const string& SecondaryOutput::getName() const
+const gcamstr& SecondaryOutput::getName() const
 {
     // Make sure the name is initialized.
     assert( !mName.empty() );
@@ -135,8 +135,8 @@ void SecondaryOutput::toDebugXML( const int aPeriod,
     XMLWriteClosingTag( getXMLNameStatic(), aOut, aTabs );
 }
 
-void SecondaryOutput::completeInit( const string& aSectorName,
-                                    const string& aRegionName,
+void SecondaryOutput::completeInit( const gcamstr& aSectorName,
+                                    const gcamstr& aRegionName,
                                     const IInfo* aTechInfo,
                                     const bool aIsTechOperating )
 {
@@ -149,8 +149,8 @@ void SecondaryOutput::completeInit( const string& aSectorName,
     }
 }
 
-void SecondaryOutput::initCalc( const string& aRegionName,
-                                const string& aSectorName,
+void SecondaryOutput::initCalc( const gcamstr& aRegionName,
+                                const gcamstr& aSectorName,
                                 const int aPeriod )
 {
     // Initialize the cached CO2 coefficient. Output ratio is determined by the
@@ -160,18 +160,17 @@ void SecondaryOutput::initCalc( const string& aRegionName,
 }
 
 
-void SecondaryOutput::postCalc( const string& aRegionName,
+void SecondaryOutput::postCalc( const gcamstr& aRegionName,
                           const int aPeriod )
 {
 }
 
 void SecondaryOutput::scaleCoefficient( const double aScaler ){
-    // Secondary outputs do not support scaling.
-    // TODO: Should they? This interface is not great.
+    mOutputRatio = aScaler;
 }
 
 IOutput::OutputList SecondaryOutput::calcPhysicalOutput( const double aPrimaryOutput,
-                                                         const string& aRegionName,
+                                                         const gcamstr& aRegionName,
                                                          const ICaptureComponent* aCaptureComponent,
                                                          const int aPeriod ) const
 {
@@ -181,7 +180,7 @@ IOutput::OutputList SecondaryOutput::calcPhysicalOutput( const double aPrimaryOu
 }
 
 void SecondaryOutput::setPhysicalOutput( const double aPrimaryOutput,
-                                         const string& aRegionName,
+                                         const gcamstr& aRegionName,
                                          ICaptureComponent* aCaptureComponent,
                                          const int aPeriod )
 {
@@ -202,7 +201,7 @@ double SecondaryOutput::getPhysicalOutput( const int aPeriod ) const
     return -1 * mPhysicalOutputs[ aPeriod ];
 }
 
-double SecondaryOutput::getValue( const string& aRegionName,
+double SecondaryOutput::getValue( const gcamstr& aRegionName,
                                   const ICaptureComponent* aCaptureComponent,
                                   const int aPeriod ) const
 {
@@ -220,12 +219,12 @@ double SecondaryOutput::getValue( const string& aRegionName,
     return price * mOutputRatio * mPriceMult;
 }
 
-string SecondaryOutput::getOutputUnits( const string& aRegionName ) const {
+gcamstr SecondaryOutput::getOutputUnits( const gcamstr& aRegionName ) const {
     return scenario->getMarketplace()->getMarketInfo( getName(), mMarketName.empty() ? aRegionName : mMarketName, 0, true )
         ->getString( "output-unit", false );
 }
 
-double SecondaryOutput::getEmissionsPerOutput( const string& aGHGName,
+double SecondaryOutput::getEmissionsPerOutput( const gcamstr& aGHGName,
                                                const int aPeriod ) const
 {
     // Currently other GHGs do not use output emissions coefficients.

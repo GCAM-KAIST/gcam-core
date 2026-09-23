@@ -78,18 +78,18 @@ class SubResource: public INamed, public IVisitable, private boost::noncopyable
 public:
     SubResource();
     virtual ~SubResource();
-    const std::string& getName() const;
-    virtual void completeInit( const std::string& aRegionName, const std::string& aResourceName,
+    const gcamstr& getName() const;
+    virtual void completeInit( const gcamstr& aRegionName, const gcamstr& aResourceName,
                                const IInfo* aResourceInfo );
     void toDebugXML( const int period, std::ostream& out, Tabs* tabs ) const;
     static const std::string& getXMLNameStatic();
-    virtual void cumulsupply( const std::string& aRegionName, const std::string& aResourceName,
+    virtual void cumulsupply( const gcamstr& aRegionName, const gcamstr& aResourceName,
                               double aPrice, int aPeriod );
-    virtual void initCalc( const std::string& aRegionName, const std::string& aResourceName,
+    virtual void initCalc( const gcamstr& aRegionName, const gcamstr& aResourceName,
                            const IInfo* aResourceInfo, const int aPeriod );
-    virtual void postCalc( const std::string& aRegionName, const std::string& aResourceName, const int aPeriod );
+    virtual void postCalc( const gcamstr& aRegionName, const gcamstr& aResourceName, const int aPeriod );
     virtual double getCumulProd( const int aPeriod ) const;
-    virtual void annualsupply( const std::string& aRegionName, const std::string& aResourceName,
+    virtual void annualsupply( const gcamstr& aRegionName, const gcamstr& aResourceName,
                                int aPeriod, double aPrice );
     double getAnnualProd( int aPeriod ) const;
     double getAvailable( int aPeriod ) const;
@@ -109,7 +109,7 @@ protected:
                                 ReserveSubResource ),
         
         //! SubResource name.
-        DEFINE_VARIABLE( SIMPLE, "name", mName, std::string ),
+        DEFINE_VARIABLE( SIMPLE, "name", mName, gcamstr ),
         
         //! total available resource
         DEFINE_VARIABLE( ARRAY | STATE | NOT_PARSABLE, "available", mAvailable, objects::PeriodVector<Value> ),
@@ -122,9 +122,6 @@ protected:
         
         //! Cumulative Technical Change for this subsector
         DEFINE_VARIABLE( ARRAY | NOT_PARSABLE, "cumulative-tech-change", mCumulativeTechChange, objects::PeriodVector<double> ),
-        
-        //! effective price (global price + price adder)
-        DEFINE_VARIABLE( ARRAY | STATE | NOT_PARSABLE, "effective-price", mEffectivePrice, objects::PeriodVector<Value> ),
         
         //! calibrated production
         DEFINE_VARIABLE( ARRAY, "cal-production", mCalProduction, objects::PeriodVector<double> ),

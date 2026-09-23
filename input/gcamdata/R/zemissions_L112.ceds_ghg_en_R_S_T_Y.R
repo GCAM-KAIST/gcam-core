@@ -20,7 +20,7 @@
 #' @details Calculates emissions using CEDS emissions and GCAM sectors.
 #' @importFrom assertthat assert_that
 #' @importFrom dplyr filter mutate select mutate_all
-#' @importFrom tidyr gather spread
+#' @importFrom tidyr gather spread pivot_longer pivot_wider
 #' @importFrom tibble tibble
 #' @author CWR Oct. 2018 , YO Mar. 2020, KBN 2020
 module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
@@ -54,11 +54,15 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
              "L124.LC_bm2_R_Grass_Yh_GLU_adj",
              "L124.LC_bm2_R_UnMgdFor_Yh_GLU_adj",
              "L154.IEA_histfut_data_times_UCD_shares",
-             "L1326.in_EJ_R_indenergy_F_Yh",
+             "L1328.in_EJ_R_indenergy_F_Yh",
              "L1323.in_EJ_R_iron_steel_F_Y",
              "L1324.in_EJ_R_Off_road_F_Y",
              "L1325.in_EJ_R_chemical_F_Y",
              "L1326.in_EJ_R_aluminum_Yh",
+             "L270.nonghg_tg_state_fossil_res_F_Yb",
+             "L1327.in_EJ_R_paper_F_Yh",
+             "L1328.in_EJ_R_food_F_Yh",
+             "L1328.in_EJ_R_indenergy_infilled_for_food_F_Yh",
              "L270.nonghg_tg_state_refinery_F_Yb",
              FILE = "emissions/CEDS/ceds_sector_map",
              FILE = "emissions/CEDS/ceds_fuel_map",
@@ -67,6 +71,8 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
              FILE = "emissions/EPA/EPA_2019_raw",
              FILE = "emissions/EPA_CH4N2O_map",
              FILE = "emissions/GCAM_EPA_CH4N2O_energy_map",
+             "L244.GenericShares",
+             "L244.ThermalShares",
              # BC OC assumption files
              FILE = "gcam-usa/emissions/BC_OC_assumptions",
              FILE = "gcam-usa/emissions/BCOC_PM25_ratios"))
@@ -107,16 +113,17 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       EDGAR_agg_sector <- globalemfact <- emfact <- value <- em_fact <- . <- FF_driver <- natural_gas <- UCD_category <- Non.co2 <-
       quantile <- upper <- GCAM_subsector <- value_median <- share_in_global_ship <- main.fuel <- CEDS_agg_fuel_remapped <- NULL
 
-
     #Get CEDS_GFED data
-    L112.CEDS_GCAM_no_intl_shipping <- get_data(all_data, "L102.ceds_GFED_nonco2_tg_R_S_F")
+    L112.CEDS_GCAM_no_intl_shipping <- get_data(all_data, "L102.ceds_GFED_nonco2_tg_R_S_F") %>%
+      filter(year %in% HISTORICAL_YEARS)
 
     #Get CEDS international shipping data
-    L112.CEDS_intl_shipping <- get_data(all_data, "L102.ceds_int_shipping_nonco2_tg_S_F")
+    L112.CEDS_intl_shipping <- get_data(all_data, "L102.ceds_int_shipping_nonco2_tg_S_F") %>%
+      filter(year %in% HISTORICAL_YEARS)
     Int_shipping_IEA_EIA <- get_data(all_data, "L154.IEA_histfut_data_times_UCD_shares") %>% filter(UCD_category=="trn_international ship")
 
     #Get NEI data for crude oil and natural gas, and BC OC fractions for this
-    NEI_tg_oilgas_state_Yb <- get_data(all_data, "L270.nonghg_tg_state_refinery_F_Yb") %>% filter(sector == "NG_production_distribution" | sector == "petroleum_production")
+    NEI_tg_oilgas_state_Yb <- get_data(all_data, "L270.nonghg_tg_state_fossil_res_F_Yb") %>% filter(sector == "NG_production_distribution" | sector == "petroleum_production")
     BC_OC_assumptions <- get_data(all_data, "gcam-usa/emissions/BC_OC_assumptions")
     BCOC_PM25_ratios <- get_data(all_data, "gcam-usa/emissions/BCOC_PM25_ratios") %>%
       # removing columns we do not use, and sectors that aren't mapped to GCAM sectors
@@ -131,7 +138,8 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
 
     #Process data for international shipping to disaggregate to the GCAM regions
     L112.CEDS_intl_shipping %>%
-      right_join(Int_shipping_IEA_EIA %>% select(iso,year,value) %>% filter(year <= max(HISTORICAL_YEARS)), by=c("year")) %>%
+      right_join(Int_shipping_IEA_EIA %>% select(iso,year,value) %>%
+                   filter(year %in% HISTORICAL_YEARS), by=c("year")) %>%
       mutate(emissions=if_else(is.na(emissions),0,emissions)) %>%
       group_by(Non.CO2,year,sector,fuel) %>%
       mutate(share_in_global_ship= value/sum(value)) %>%
@@ -143,7 +151,8 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       group_by(GCAM_region_ID, Non.CO2, CEDS_agg_sector, CEDS_agg_fuel, year) %>%
       summarise(emissions = sum(emissions)) %>%
       ungroup() %>%
-      na.omit()->CEDS_int_shipping
+      na.omit() ->
+      CEDS_int_shipping
 
     #Combine emissions from all other CEDS sectors with emissions from international shipping
     L112.CEDS_GCAM_no_intl_shipping %>%
@@ -163,17 +172,17 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       summarise(emissions = sum(emissions)) %>%
       ungroup() %>%
       na.omit() %>%
-      #filter data for final model base year, since we may not have GCAM activity data beyond the latest base year.
-      filter(year<= max(HISTORICAL_YEARS))->L112.CEDS_GCAM
+      #filter data for final historical year, since we may not have GCAM activity data beyond the latest historical year.
+      filter(year <= FINAL_HISTORICAL_YEAR) -> L112.CEDS_GCAM
 
     # Load required inputs
     GCAM_region_names <- get_data(all_data, "common/GCAM_region_names")
 
     #Get GAINS sector and fuel emissions by iso. Also get IEA energy data by iso.
-    GAINS_sector <- get_data(all_data,"emissions/CEDS/gains_iso_sector_emissions")
+    gains_iso_sector_emissions <- get_data(all_data,"emissions/CEDS/gains_iso_sector_emissions")
     #Separate out GAINS em factors for NG
-    GAINS_fuel <- get_data(all_data,"emissions/CEDS/gains_iso_fuel_emissions") %>%  select(-natural_gas)
-    GAINS_fuel_NG <- get_data(all_data,"emissions/CEDS/gains_iso_fuel_emissions") %>%  select(-dieseloil,-lightoil)
+    gains_iso_fuel_emissions <- get_data(all_data,"emissions/CEDS/gains_iso_fuel_emissions") %>%  select(-natural_gas)
+    gains_iso_fuel_emissions_NG <- get_data(all_data,"emissions/CEDS/gains_iso_fuel_emissions") %>%  select(-dieseloil,-lightoil)
     IEA_Ctry_data <- get_data(all_data,"L154.IEA_histfut_data_times_UCD_shares")
 
     #If using revised size classes, use revised data else use old data
@@ -206,11 +215,14 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
     calibrated_techs_bld_det <- get_data(all_data, "energy/calibrated_techs_bld_det")
     L101.in_EJ_R_en_Si_F_Yh <- get_data(all_data, "L101.in_EJ_R_en_Si_F_Yh") %>%
       gather_years(value_col = "energy")
-    L1326.in_EJ_R_indenergy_F_Yh <- get_data(all_data, "L1326.in_EJ_R_indenergy_F_Yh")
+    L1328.in_EJ_R_indenergy_F_Yh <- get_data(all_data, "L1328.in_EJ_R_indenergy_F_Yh")
     L1323.in_EJ_R_iron_steel_F_Y <- get_data(all_data, "L1323.in_EJ_R_iron_steel_F_Y")
     L1324.in_EJ_R_Off_road_F_Y <- get_data(all_data, "L1324.in_EJ_R_Off_road_F_Y")
     L1325.in_EJ_R_chemical_F_Y <- get_data(all_data, "L1325.in_EJ_R_chemical_F_Y")
     L1326.in_EJ_R_aluminum_Yh <- get_data(all_data, "L1326.in_EJ_R_aluminum_Yh")
+    L1327.in_EJ_R_paper_F_Yh <- get_data(all_data, "L1327.in_EJ_R_paper_F_Yh")
+    L1328.in_EJ_R_food_F_Yh <- get_data(all_data, "L1328.in_EJ_R_food_F_Yh")
+    L1328.in_EJ_R_indenergy_infilled_for_food_F_Yh <- get_data(all_data, "L1328.in_EJ_R_indenergy_infilled_for_food_F_Yh")
     CEDS_sector_map <- get_data(all_data, "emissions/CEDS/ceds_sector_map")
     CEDS_fuel_map <- get_data(all_data, "emissions/CEDS/ceds_fuel_map")
 
@@ -276,6 +288,32 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       filter(!fuel %in% c(emissions.ZERO_EM_TECH,"NG")) %>%
       mutate(fuel =if_else(fuel=="Hybrid Liquids","Liquids",fuel))->Clean_IEA_ctry_data
 
+    # make GAINS data base year update friendly by interpolating values for the base year
+    gains_iso_sector_emissions %>%
+      tidyr::pivot_longer(c(Freight, Motorcycle, Passenger), names_to = "modes", values_to = "value") %>%
+      complete(nesting(Non.co2, iso, modes),
+               year = unique(c(year, FINAL_HISTORICAL_YEAR))) %>%
+      group_by(Non.co2, iso, modes) %>%
+      mutate(value = approx_fun(year, value, rule = 1)) %>%
+      ungroup() %>%
+      tidyr::pivot_wider(names_from = "modes", values_from = "value") -> GAINS_sector
+
+    gains_iso_fuel_emissions %>%
+      tidyr::pivot_longer(c(dieseloil, lightoil), names_to = "fuels", values_to = "value") %>%
+      complete(nesting(Non.co2, iso, fuels),
+               year = unique(c(year, FINAL_HISTORICAL_YEAR))) %>%
+      group_by(Non.co2, iso, fuels) %>%
+      mutate(value = approx_fun(year, value, rule = 1)) %>%
+      ungroup() %>%
+      tidyr::pivot_wider(names_from = "fuels", values_from = "value") -> GAINS_fuel
+
+    gains_iso_fuel_emissions_NG %>%
+      complete(nesting(Non.co2, iso),
+               year = unique(c(year, FINAL_HISTORICAL_YEAR))) %>%
+      group_by(Non.co2, iso) %>%
+      mutate(natural_gas = approx_fun(year, natural_gas, rule = 1)) %>%
+      ungroup()-> GAINS_fuel_NG
+
     #Calculate GAINS sector weights which we can use on CEDS data to distribute emissions into Passenger and Freight.
     Clean_IEA_ctry_data %>%
       group_by(iso,UCD_sector,year) %>%
@@ -284,6 +322,7 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       select(iso,UCD_sector,year,value,GCAM_region_ID) %>%
       distinct() %>%
       repeat_add_columns(tibble(Non.co2 = unique(GAINS_sector$Non.co2))) %>%
+      # there will be NAs in left_join
       left_join(GAINS_sector %>% gather("UCD_sector","em_fact","Freight":"Passenger"),by=c("iso","year","Non.co2","UCD_sector")) %>%
       na.omit() %>%
       filter(UCD_sector != "Motorcycle") %>%
@@ -324,14 +363,14 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       select(GCAM_region_ID,year,Non.co2,emissions) %>%
       distinct() %>%
       #Join in sector weights
-      left_join(GAINS_sector_weights, by=c("GCAM_region_ID","year","Non.co2")) %>%
+      left_join(GAINS_sector_weights, by=c("GCAM_region_ID","year","Non.co2")) %>% #there will be NAs
       na.omit() %>%
       #First split emissions into Passenger and Freight %>%
       group_by(GCAM_region_ID,year,Non.co2) %>%
       mutate(sum_sector_weight=sum(sector_weight)) %>%
       ungroup() %>%
       mutate(emissions=(emissions*sector_weight)/sum_sector_weight) %>%
-      left_join(GAINS_mode_weights, by=c("GCAM_region_ID","year","Non.co2","UCD_sector")) %>%
+      left_join(GAINS_mode_weights, by=c("GCAM_region_ID","year","Non.co2","UCD_sector")) %>% #there will be NAs
       na.omit() %>%
       #Now do mode weight calculation
       group_by(GCAM_region_ID,year,Non.co2,UCD_sector) %>%
@@ -341,7 +380,13 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       ungroup() %>%
       mutate(CEDS_agg_fuel=paste0("refined liquids")) %>%
       rename(CEDS_agg_sector=mode,Non.CO2=Non.co2) %>%
-      select(GCAM_region_ID,year,Non.CO2,CEDS_agg_sector,CEDS_agg_fuel,emissions) %>% distinct()->L112.CEDS_GCAM_Road_Emissions_GAINS
+      select(GCAM_region_ID,year,Non.CO2,CEDS_agg_sector,CEDS_agg_fuel,emissions) %>%
+      distinct() %>%
+      complete(nesting(GCAM_region_ID, Non.CO2, CEDS_agg_sector, CEDS_agg_fuel),
+               year = unique(c(year, HISTORICAL_YEARS))) %>%
+      group_by(GCAM_region_ID, Non.CO2, CEDS_agg_sector, CEDS_agg_fuel) %>%
+      mutate(emissions = approx_fun(year, emissions, rule = 2)) %>%
+      ungroup() -> L112.CEDS_GCAM_Road_Emissions_GAINS
 
     #Bind new GAINS weighted emissions into CEDS emissions
     L112.CEDS_GCAM %>%  bind_rows(L112.CEDS_GCAM_Road_Emissions_GAINS)->L112.CEDS_GCAM
@@ -372,7 +417,7 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       select(iso,mode,year,value,GCAM_region_ID,UCD_sector,fuel,size.class) %>%
       distinct() %>%
       repeat_add_columns(tibble(Non.co2 = unique(GAINS_fuel_NG$Non.co2))) %>%
-      left_join(GAINS_fuel_NG , by=c("Non.co2","iso","year")) %>%
+      left_join(GAINS_fuel_NG , by=c("Non.co2","iso","year")) %>% #there will be NAs
       na.omit() %>%
       rename(em=natural_gas) %>%
       #Now calculate mode wights here
@@ -521,14 +566,27 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       L1325.in_EJ_R_chemical_F_Y
 
     L1326.in_EJ_R_aluminum_Yh %>%
-      mutate(technology = fuel) ->
+      mutate(technology = fuel) %>%
+      filter(year %in% HISTORICAL_YEARS) ->
       L1326.in_EJ_R_aluminum_Yh
 
-    L1326.in_EJ_R_indenergy_F_Yh %>% mutate(technology = fuel) %>%
+    L1327.in_EJ_R_paper_F_Yh %>%
+      mutate(technology = fuel) %>%
+      filter(!technology %in% emissions.ZERO_EM_TECH) ->
+      L1327.in_EJ_R_paper_F_Yh
+
+    L1328.in_EJ_R_food_F_Yh %>%
+      mutate(technology = fuel) ->
+      L1328.in_EJ_R_food_F_Yh
+
+
+    L1328.in_EJ_R_indenergy_F_Yh %>% mutate(technology = fuel) %>%
       bind_rows(L1323.in_EJ_R_iron_steel_F_Y,
                 L1324.in_EJ_R_Off_road_F_Y,
                 L1325.in_EJ_R_chemical_F_Y,
-                L1326.in_EJ_R_aluminum_Yh) %>%
+                L1326.in_EJ_R_aluminum_Yh,
+                L1327.in_EJ_R_paper_F_Yh,
+                L1328.in_EJ_R_food_F_Yh) %>%
       complete(nesting(GCAM_region_ID, sector, fuel, technology), year = HISTORICAL_YEARS) %>%
       replace_na(list(value = 0)) %>%
       select(GCAM_region_ID, fuel, technology, sector, year, energy = value) ->
@@ -543,7 +601,7 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
     # Get main combustion fuel in iron and steel in base year by region and technology
     # Non-CO2 emissions will be assigned to this fuel for iron and steel, since it can't be broken out by subsector, technology, and fuel
     L1323.in_EJ_R_iron_steel_F_Y %>%
-      filter(year == max(MODEL_BASE_YEARS),
+      filter(year == FINAL_HISTORICAL_YEAR,
              # filter out electricity
              !fuel %in% emissions.ZERO_EM_TECH) %>%
       group_by(GCAM_region_ID, sector, technology) %>%
@@ -564,9 +622,11 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       L112.in_EJ_R_en_S_F_Yh_calibtech
 
     # Splits energy balances out for building sector and maps to final GCAM sectors
-    L101.in_EJ_R_en_Si_F_Yh %>%
-      left_join(calibrated_techs_bld_det %>% select(sector, fuel, service, supplysector, subsector, technology) %>% rename(stub.technology = technology), by = c("sector" = "service", "fuel")) %>%
-      na.omit() %>%
+    L101.in_EJ_R_en_Si_F_Yh %>% filter(grepl("resid",sector)) %>%
+      bind_rows(L101.in_EJ_R_en_Si_F_Yh %>% filter(grepl("comm",sector)) ) %>%
+      left_join_error_no_match(calibrated_techs_bld_det %>%
+                  select(sector, fuel, service, supplysector, subsector, technology) %>%
+                  rename(stub.technology = technology), by = c("sector" = "service", "fuel")) %>%
       select(GCAM_region_ID, year, energy, supplysector, subsector, stub.technology) ->
       L112.in_EJ_R_en_S_F_Yh_calib_bld
 
@@ -591,9 +651,68 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       ungroup() ->
       L112.in_EJ_R_en_S_F_Yh_calib_all
 
+    # We neeed to allocate residential energy to the diferent consumer groups using the computed shares:
+    L244.GenericShares<- get_data(all_data, "L244.GenericShares",strip_attributes = TRUE) %>%
+      select(region,gcam.consumer,building.service.input,year,gen_share) %>%
+      rename(supplysector=building.service.input,
+             share=gen_share) %>%
+      filter(grepl("resid",supplysector)) %>%
+      separate(gcam.consumer,c("gcam.consumer","group"),sep = "_") %>%
+      unite(supplysector,c("supplysector","group"),sep = "_") %>%
+      select(-gcam.consumer) %>%
+      complete(nesting(region,supplysector), year = c(year, unique(L112.in_EJ_R_en_S_F_Yh_calib_all$year))) %>%
+      # Interpolate
+      group_by(region,supplysector) %>%
+      mutate(share = approx_fun(year, share, rule = 2))
+
+    L244.ThermalShares<- get_data(all_data, "L244.ThermalShares",strip_attributes = TRUE) %>%
+      select(region,gcam.consumer,thermal.building.service.input,year,thermal_share) %>%
+      rename(supplysector=thermal.building.service.input,
+             share=thermal_share)%>%
+      filter(grepl("resid",supplysector)) %>%
+      separate(gcam.consumer,c("gcam.consumer","group"),sep = "_") %>%
+      unite(supplysector,c("supplysector","group"),sep = "_") %>%
+      select(-gcam.consumer)%>%
+      complete(nesting(region,supplysector), year = c(year, unique(L112.in_EJ_R_en_S_F_Yh_calib_all$year))) %>%
+      # Interpolate
+      group_by(region,supplysector) %>%
+      mutate(share = approx_fun(year, share, rule = 2))
+
+    L244.Shares<-bind_rows(L244.GenericShares,L244.ThermalShares) %>%
+      left_join_error_no_match(GCAM_region_names, by = "region")
+
+
+    cons.gr.adj<-get_data(all_data, "L244.GenericShares",strip_attributes = TRUE)  %>%
+      select(gcam.consumer) %>%
+      filter(grepl("resid",gcam.consumer)) %>%
+      distinct() %>%
+      mutate(gcam.consumer = gsub("resid_","",gcam.consumer))
+
+    L112.in_EJ_R_en_S_F_Yh_calib_all_resid<- L112.in_EJ_R_en_S_F_Yh_calib_all %>%
+      filter(grepl("resid",supplysector)) %>%
+      repeat_add_columns(tibble(group=unique(cons.gr.adj$gcam.consumer))) %>%
+      unite(supplysector,c("supplysector","group"),sep = "_") %>%
+      # add shares
+      left_join_error_no_match(L244.Shares, by = c("GCAM_region_ID", "year", "supplysector")) %>%
+      mutate(energy = energy * share) %>%
+      select(-region,-share)
+
+    L112.in_EJ_R_en_S_F_Yh_calib_all<-L112.in_EJ_R_en_S_F_Yh_calib_all %>%
+      filter(!grepl("resid",supplysector)) %>%
+      bind_rows(L112.in_EJ_R_en_S_F_Yh_calib_all_resid)
+
 
     # MATCH ENERGY AND EMISSIONS TO AGGREGATE EMISSIONS TO SPLIT OUT EMISSIONS BY GCAM SECTORS
     # ========================================================================================
+
+    CEDS_sector_tech_adj<-CEDS_sector_tech %>%
+      filter(!grepl("resid",supplysector)) %>%
+      bind_rows(L112.in_EJ_R_en_S_F_Yh_calib_all_resid %>%
+                  select(supplysector,subsector,stub.technology) %>%
+                  distinct() %>%
+                  mutate(CEDS_agg_sector = "bld_resid",
+                         CEDS_agg_fuel = stub.technology,
+                         CEDS_agg_fuel = if_else(CEDS_agg_fuel == "traditional biomass","biomass",stub.technology)))
 
     # Append CEDS sector/fuel combinations to GCAM energy
 
@@ -602,7 +721,7 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
 
       filter(!stub.technology %in% c(emissions.ZERO_EM_TECH),
              !subsector %in% c(emissions.ZERO_EM_TECH, "heat")) %>%
-      left_join_error_no_match(CEDS_sector_tech, by = c("supplysector", "subsector", "stub.technology")) ->
+      left_join_error_no_match(CEDS_sector_tech_adj, by = c("supplysector", "subsector", "stub.technology"))  ->
       L112.in_EJ_R_en_S_F_Yh_calib_all_baseenergy
 
 
@@ -637,10 +756,55 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       mutate(enshare = energy/totalenergy) ->
       L112.in_EJ_R_en_S_F_Yh_calib_enshare
 
+    ### ADDITION FOR FOOD PROCESSING ENERGY SECTOR BREAKOUT
+    # Some infilling is performed for regions lacking adequate data on food processing energy use, where energy use for food processing
+    # is estimated and some energy is pulled from other industrial energy use and added to food processing.
+    # For consistency with this energy data infilling, we also need to infill some non-CO2 emissions for food processing by pulling from
+    # other industrial energy use non-CO2 emissions.
+    # We will use the fraction of the remaining other industrial energy use (by fuel) that is removed and reallocated to food processing in the infilling
+    # process to set the fraction of other industrial non-CO2 emissions (by fuel) that are removed and reallocated to food processing here
+    L112.CEDS_GCAM_emissions %>%
+      filter(CEDS_agg_sector == "industry_energy") %>%
+      left_join_error_no_match(L1328.in_EJ_R_indenergy_infilled_for_food_F_Yh %>%
+                  select(GCAM_region_ID, CEDS_agg_fuel = fuel, year, CEDS_agg_sector = sector, removed_frac),
+                by = c("GCAM_region_ID", "CEDS_agg_fuel", "year", "CEDS_agg_sector")) %>%
+      # calculate the emissions that need to be removed from other industry and added to food processing
+      mutate(removed_frac = replace_na(removed_frac, 0),
+             emissions_to_infill = emissions * removed_frac) ->
+      L112.CEDS_GCAM_emissions_to_infill_for_food
+
+    L112.CEDS_GCAM_emissions %>%
+      # not using LJENM here & NAs are replaced later
+      # join emissions to remove (from other industry)
+      left_join(L112.CEDS_GCAM_emissions_to_infill_for_food %>%
+                  select(Non.CO2, GCAM_region_ID, CEDS_agg_sector, CEDS_agg_fuel,
+                         year, emissions_to_remove = emissions_to_infill),
+                by = c("Non.CO2", "GCAM_region_ID", "CEDS_agg_sector", "CEDS_agg_fuel",
+                       "year")) %>%
+      # join emissions to add (for food processing)
+      left_join(L112.CEDS_GCAM_emissions_to_infill_for_food %>%
+                  mutate(CEDS_agg_sector = "food processing") %>%
+                  select(Non.CO2, GCAM_region_ID, CEDS_agg_sector, CEDS_agg_fuel,
+                         year, emissions_to_infill),
+                by = c("Non.CO2", "GCAM_region_ID", "CEDS_agg_sector", "CEDS_agg_fuel",
+                       "year")) %>%
+      mutate(emissions_to_remove = replace_na(emissions_to_remove, 0),
+             emissions_to_infill = replace_na(emissions_to_infill, 0),
+             emissions = emissions - emissions_to_remove + emissions_to_infill) %>%
+      select(Non.CO2, GCAM_region_ID, CEDS_agg_sector, CEDS_agg_fuel, year, emissions) ->
+      L112.CEDS_GCAM_emissions_food_infill
+
+
     # Attach CEDS emissions to those sector fuel combos
     L112.in_EJ_R_en_S_F_Yh_calib_enshare %>%
-      left_join(L112.CEDS_GCAM_emissions,
-                by = c("GCAM_region_ID", "year", "CEDS_agg_sector", "CEDS_agg_fuel")) ->
+      full_join(
+        # using inner join to filter joining columns first
+        L112.CEDS_GCAM_emissions_food_infill %>%
+          inner_join(L112.in_EJ_R_en_S_F_Yh_calib_enshare %>%
+                       distinct(GCAM_region_ID, year, CEDS_agg_sector, CEDS_agg_fuel),
+                     by = c("GCAM_region_ID", "CEDS_agg_sector", "CEDS_agg_fuel", "year")),
+        by = c("GCAM_region_ID", "year", "CEDS_agg_sector", "CEDS_agg_fuel")
+      ) ->
       L112.CEDSGCAM_emissions
 
     L112.CEDSGCAM_emissions %>%
@@ -718,7 +882,7 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
     all_unconventional_oil_fug_emfacts %>%
       # fill in all historical years with the same emissions factor
       group_by(GCAM_region_ID, Non.CO2, supplysector, subsector, stub.technology, emfact) %>%
-      mutate(year = MODEL_FINAL_BASE_YEAR) %>%
+      mutate(year = FINAL_HISTORICAL_YEAR) %>%
       complete(year = HISTORICAL_YEARS) %>%
       ungroup() %>%
       # combine with other emissions factors
@@ -796,7 +960,7 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
              stub.technology, emfact, energy)->
       L112.nonco2_tgej_R_en_S_F_Yh_with_oil_adjustment
 
-    #Generate threshold for replacing emissions factors that are too high
+    # Generate threshold for replacing emissions factors that are too high
     L112.nonco2_tgej_R_en_S_F_Yh_with_oil_adjustment %>%
       replace_na(list(emfact = 0)) %>%
       group_by(year, Non.CO2, supplysector, subsector, stub.technology) %>%
@@ -823,11 +987,28 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       left_join_error_no_match(L112.nonco2_tgej_R_en_S_F_Yh_thresholds, by = c("year", "Non.CO2", "supplysector", "subsector", "stub.technology")) %>%
       #There are two adjustments here. First, we check if the supply sector is related to fossil fuels (except unconventional oil, since this is done exogenously), in that case, if the emissions factor is above the threshold, we replace with the median of the top producers.
       #If not, we just compare with our threshold of 1000 tg/ej and make the replacements accordingly. These adjustments are structured given that fossil fuel production may increase rapidly in some regions (even though absolute increase may be low).
-      mutate(emfact = if_else(supplysector == "out_resources" & stub.technology != "unconventional oil", if_else(emfact >threshold | is.na(emfact) , medTopEF, emfact),
+      mutate(emfact = if_else(supplysector == "out_resources" & stub.technology != "unconventional oil", if_else(emfact > threshold | is.na(emfact) , medTopEF, emfact),
                               if_else(emfact >  emissions.HIGH_EM_FACTOR_THRESHOLD | is.na(emfact) , medGlobal, emfact))) %>%
       select(GCAM_region_ID, Non.CO2, year, supplysector, subsector, stub.technology, emfact) %>%
       mutate(emfact = if_else(is.infinite(emfact), 1, emfact)) ->
-      L112.nonco2_tgej_R_en_S_F_Yh
+      L112.nonco2_tgej_R_en_S_F_Yh_replace_outliers
+
+    ## Replace outlier EFs with the global median for all sectors except out_resources, which was replaced above based on a different method
+    L112.nonco2_tgej_R_en_S_F_Yh_remainder <- L112.nonco2_tgej_R_en_S_F_Yh_replace_outliers %>%
+      filter(supplysector != "out_resources")
+
+    # list columns to group by (emission factor medians will based on this grouping)
+    to_group <- c( "year", "Non.CO2", "supplysector", "subsector", "stub.technology" )
+    # list columns to keep in final table
+    names <- c( "GCAM_region_ID", "Non.CO2", "year", "supplysector", "subsector", "stub.technology", "emfact")
+    # Name of column containing emission factors
+    ef_col_name <- "emfact"
+    L112.nonco2_tgej_R_en_S_F_Yh_remainder_out <- replace_outlier_EFs(L112.nonco2_tgej_R_en_S_F_Yh_remainder, to_group, names, ef_col_name)
+
+    L112.nonco2_tgej_R_en_S_F_Yh <-  L112.nonco2_tgej_R_en_S_F_Yh_remainder_out %>%
+      bind_rows(L112.nonco2_tgej_R_en_S_F_Yh_replace_outliers %>%
+              filter(supplysector == "out_resources"))
+
 
 
 
@@ -1530,7 +1711,7 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
 
       # 3) Handling outliers, if any scaler is greater than a threshold, will replace its scaler as 1
       # so just keep using CEDS emission
-      # for industry process emisison, choose scaler as emissions.EPA.SCALING.THRESHOLD
+      # for industry process emission, choose scaler as emissions.EPA.SCALING.THRESHOLD
       # mostly filter out Region 4 - industrial other, and some region 32
 
       L131.nonco2_tg_R_prc_S_S_Yh_EPAscaler %>%
@@ -1724,11 +1905,11 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
                      "common/iso_GCAM_regID","energy/mappings/UCD_techs","energy/calibrated_techs","energy/calibrated_techs_bld_det",
                      "emissions/mappings/Trn_subsector","emissions/CEDS/CEDS_sector_tech_combustion","emissions/mappings/Trn_subsector_revised",
                      "emissions/mappings/CEDS_sector_tech_proc","emissions/mappings/calibrated_outresources","emissions/mappings/CEDS_sector_tech_proc_revised",
-                     "L101.in_EJ_R_en_Si_F_Yh", "L1326.in_EJ_R_indenergy_F_Yh", "L1323.in_EJ_R_iron_steel_F_Y", "L1324.in_EJ_R_Off_road_F_Y",
-                     "L1325.in_EJ_R_chemical_F_Y", "L1326.in_EJ_R_aluminum_Yh","emissions/CEDS/CEDS_sector_tech_combustion_revised",
+                     "L101.in_EJ_R_en_Si_F_Yh", "L1328.in_EJ_R_indenergy_F_Yh", "L1323.in_EJ_R_iron_steel_F_Y", "L1324.in_EJ_R_Off_road_F_Y",
+                     "L1325.in_EJ_R_chemical_F_Y", "L1326.in_EJ_R_aluminum_Yh", "L1327.in_EJ_R_paper_F_Yh", "L1328.in_EJ_R_food_F_Yh", "L1328.in_EJ_R_indenergy_infilled_for_food_F_Yh", "emissions/CEDS/CEDS_sector_tech_combustion_revised",
                      "emissions/mappings/UCD_techs_emissions_revised","L154.IEA_histfut_data_times_UCD_shares",
-                     "emissions/CEDS/gains_iso_sector_emissions","emissions/CEDS/gains_iso_fuel_emissions",
-                     "L270.nonghg_tg_state_refinery_F_Yb", "gcam-usa/emissions/BC_OC_assumptions", "gcam-usa/emissions/BCOC_PM25_ratios") ->
+                     "emissions/CEDS/gains_iso_sector_emissions","emissions/CEDS/gains_iso_fuel_emissions","L244.GenericShares","L244.ThermalShares",
+                     "L270.nonghg_tg_state_fossil_res_F_Yb", "L270.nonghg_tg_state_refinery_F_Yb", "gcam-usa/emissions/BC_OC_assumptions", "gcam-usa/emissions/BCOC_PM25_ratios") ->
       L111.nonghg_tg_R_en_S_F_Yh
 
     L111.nonghg_tgej_R_en_S_F_Yh_infered_combEF_AP %>%
@@ -1748,12 +1929,12 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
       add_precursors("L102.ceds_GFED_nonco2_tg_R_S_F","L102.ceds_int_shipping_nonco2_tg_S_F","emissions/CEDS/ceds_sector_map","emissions/CEDS/ceds_fuel_map", "common/GCAM_region_names",
                      "common/iso_GCAM_regID","energy/mappings/UCD_techs","energy/calibrated_techs","energy/calibrated_techs_bld_det",
                      "emissions/mappings/Trn_subsector","emissions/CEDS/CEDS_sector_tech_combustion","emissions/mappings/calibrated_outresources",
-                     "L101.in_EJ_R_en_Si_F_Yh", "L1326.in_EJ_R_indenergy_F_Yh", "L1323.in_EJ_R_iron_steel_F_Y", "L1324.in_EJ_R_Off_road_F_Y",
-                     "L1325.in_EJ_R_chemical_F_Y", "L1326.in_EJ_R_aluminum_Yh","emissions/mappings/Trn_subsector_revised",
+                     "L101.in_EJ_R_en_Si_F_Yh", "L1328.in_EJ_R_indenergy_F_Yh", "L1323.in_EJ_R_iron_steel_F_Y", "L1324.in_EJ_R_Off_road_F_Y",
+                     "L1325.in_EJ_R_chemical_F_Y", "L1326.in_EJ_R_aluminum_Yh", "L1327.in_EJ_R_paper_F_Yh", "L1328.in_EJ_R_food_F_Yh", "L1328.in_EJ_R_indenergy_infilled_for_food_F_Yh", "emissions/mappings/Trn_subsector_revised",
                      "L101.in_EJ_R_en_Si_F_Yh", "emissions/mappings/Trn_subsector_revised", "emissions/EPA/EPA_2019_raw", "emissions/EPA_CH4N2O_map",
                      "emissions/CEDS/CEDS_sector_tech_combustion_revised","emissions/mappings/UCD_techs_emissions_revised","L154.IEA_histfut_data_times_UCD_shares",
                      "emissions/CEDS/gains_iso_sector_emissions","emissions/CEDS/gains_iso_fuel_emissions",
-                     "L270.nonghg_tg_state_refinery_F_Yb", "gcam-usa/emissions/BC_OC_assumptions", "gcam-usa/emissions/BCOC_PM25_ratios") ->
+                     "L270.nonghg_tg_state_fossil_res_F_Yb", "gcam-usa/emissions/BC_OC_assumptions", "gcam-usa/emissions/BCOC_PM25_ratios") ->
       L112.ghg_tg_R_en_S_F_Yh
 
     L112.ghg_tgej_R_en_S_F_Yh_infered_combEF_AP %>%
@@ -1776,18 +1957,21 @@ module_emissions_L112.ceds_ghg_en_R_S_T_Y <- function(command, ...) {
                      "emissions/mappings/calibrated_outresources",
                      "emissions/mappings/Trn_subsector_revised",
                      "L101.in_EJ_R_en_Si_F_Yh",
-                     "L1326.in_EJ_R_indenergy_F_Yh",
+                     "L1328.in_EJ_R_indenergy_F_Yh",
                      "L1323.in_EJ_R_iron_steel_F_Y",
                      "L1324.in_EJ_R_Off_road_F_Y",
                      "L1325.in_EJ_R_chemical_F_Y",
                      "L1326.in_EJ_R_aluminum_Yh",
+                     "L1327.in_EJ_R_paper_F_Yh",
+                     "L1328.in_EJ_R_food_F_Yh",
+                     "L1328.in_EJ_R_indenergy_infilled_for_food_F_Yh",
                      "emissions/EPA/EPA_2019_raw",
                      "emissions/EPA_CH4N2O_map",
                      "L111.Prod_EJ_R_F_Yh",
                      "emissions/EPA_country_map",
                      "emissions/CEDS/CEDS_sector_tech_combustion_revised",
                      "emissions/mappings/UCD_techs_emissions_revised",
-                     "L270.nonghg_tg_state_refinery_F_Yb",
+                     "L270.nonghg_tg_state_fossil_res_F_Yb",
                      "gcam-usa/emissions/BC_OC_assumptions",
                      "gcam-usa/emissions/BCOC_PM25_ratios",
                      "emissions/IPCC_unconventional_oil_fug_emfacts") ->

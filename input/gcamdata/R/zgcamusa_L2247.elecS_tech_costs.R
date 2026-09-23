@@ -64,6 +64,19 @@ module_gcamusa_L2247.elecS_tech_costs <- function(command, ...) {
     # -----------------------------------------------------------------------------
     # 2. Build tables for CSVs
     # Investment Tax Credits and Production Tax Credits
+    A23.itc_USA %>%
+      tidyr::complete(tidyr::nesting(GCAM.technology), year = MODEL_FUTURE_YEARS) %>%
+      mutate(itc = approx_fun(year, itc)) %>%
+      filter(year %in% MODEL_FUTURE_YEARS) ->
+      A23.itc_USA
+
+    # Under timeshift, some early future years will have NA values.
+    # For now, remove. TODO: consider alternative ways of producing values
+    if( UNDER_TIMESHIFT ) {
+      A23.itc_USA %>%
+        na.omit() ->
+        A23.itc_USA
+    }
 
     # Adjust FCRs by 1-ITC for technologies that have ITC
     A23.elecS_tech_mapping %>%
@@ -82,7 +95,7 @@ module_gcamusa_L2247.elecS_tech_costs <- function(command, ...) {
       # filter for technologies which are included in the ITC policy
       semi_join(A23.itc_elecS_USA, by = c("technology" = "Electric.sector.technology", "year")) %>%
       left_join_error_no_match(A23.itc_elecS_USA, by = c("year", "technology" = "Electric.sector.technology")) %>%
-      mutate(fixed.charge.rate = fixed.charge.rate * (1 - itc)) %>%
+      mutate(interest.rate = interest.rate * (1 - itc)) %>%
       rename(sector.name = supplysector, subsector.name = subsector) %>%
       select(LEVEL2_DATA_NAMES[["GlobalTechFCROnly"]]) ->
       L2247.GlobalTechFCROnly_elecS_itc_USA
@@ -93,24 +106,36 @@ module_gcamusa_L2247.elecS_tech_costs <- function(command, ...) {
                 by = c("intermittent.technology" = "Electric.sector.technology", "year")) %>%
       left_join_error_no_match(A23.itc_elecS_USA,
                                by = c("year", "intermittent.technology" = "Electric.sector.technology")) %>%
-      mutate(fixed.charge.rate = fixed.charge.rate * (1 - itc)) %>%
+      mutate(interest.rate = interest.rate * (1 - itc)) %>%
       rename(sector.name = supplysector, subsector.name = subsector) %>%
       select(LEVEL2_DATA_NAMES[["GlobalIntTechFCROnly"]]) ->
       L2247.GlobalIntTechFCROnly_elecS_itc_USA
 
     # Build table to read in PTC as cost adder (subtracter)
     A23.ptc_USA %>%
+      group_by(supplysector, subsector, technology, minicam.non.energy.input) %>%
+      tidyr::complete(year = MODEL_FUTURE_YEARS) %>%
+      mutate(input.cost = approx_fun(year, input.cost)) %>%
+      ungroup() %>%
+      filter(year %in% MODEL_FUTURE_YEARS) %>%
       # join is intended to duplicate rows (from single elec. sector techs to elec segments techs)
       # LJENM throws error, so left_join is used
       left_join(A23.elecS_tech_mapping, by = c("supplysector", "subsector" = "subsector_1", "technology")) %>%
+      replace_na(list(input.cost = 0)) %>%
       select(sector.name = Electric.sector, subsector.name = subsector, technology = Electric.sector.technology,
              year, minicam.non.energy.input, input.cost) ->
       L2247.GlobalTechCost_ptc_USA
 
     A23.ptc_inttech_USA %>%
+      group_by(supplysector, subsector, intermittent.technology, minicam.non.energy.input) %>%
+      tidyr::complete(year = MODEL_FUTURE_YEARS) %>%
+      mutate(input.cost = approx_fun(year, input.cost)) %>%
+      ungroup() %>%
+      filter(year %in% MODEL_FUTURE_YEARS) %>%
       # join is intended to duplicate rows (from single elec. sector techs to elec segments techs)
       # LJENM throws error, so left_join is used
       left_join(A23.elecS_inttech_mapping, by = c("supplysector", "subsector" = "subsector_1", "intermittent.technology")) %>%
+      replace_na(list(input.cost = 0)) %>%
       select(sector.name = Electric.sector, subsector.name = subsector, intermittent.technology = Electric.sector.intermittent.technology,
              year, minicam.non.energy.input, input.cost) ->
       L2247.GlobalIntTechCost_ptc_USA

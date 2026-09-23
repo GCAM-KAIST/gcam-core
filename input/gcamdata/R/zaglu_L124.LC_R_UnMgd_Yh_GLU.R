@@ -66,7 +66,6 @@ module_aglu_L124.LC_R_UnMgd_Yh_GLU <- function(command, ...) {
       filter(Land_Type == "Grassland") ->
       L124.LC_bm2_R_Grass_Yh_GLU
 
-
     # Calculate initial estimate of unmanaged pasture = total
     # pasture from Hyde minus managed pasture
     L120.LC_bm2_R_LT_Yh_GLU %>%
@@ -80,20 +79,18 @@ module_aglu_L124.LC_R_UnMgd_Yh_GLU <- function(command, ...) {
       select(-TotPasture, -MgdPasture) ->
       L124.LC_bm2_R_UnMgdPast_Yh_GLU
 
-
     # Calculate initial estimate of unmanaged forest = total
     # forest from SAGE/Hyde minus managed forest
     L120.LC_bm2_R_LT_Yh_GLU %>%
-      filter(Land_Type == "Forest") %>%
+      filter(Land_Type %in% c(aglu.FOREST_NODE_NAMES)) %>%
       rename(TotForest = value) %>%
       left_join_error_no_match(L123.LC_bm2_R_MgdFor_Yh_GLU, by = c("GCAM_region_ID", "GLU", "Land_Type", "year")) %>%
       rename(MgdForest = value) %>%
       # have to use value instead of more informative name so that binding all unmanaged land later goes smoothly:
       mutate(value = TotForest - MgdForest,
-             Land_Type = "UnmanagedForest") %>%
+             Land_Type = paste0("Unmanaged",Land_Type)) %>%
       select(-TotForest, -MgdForest) ->
       L124.LC_bm2_R_UnMgdFor_Yh_GLU
-
 
     # Combine all unmanaged land types into a single table for processing in multiple subsequent pipelines
     bind_rows(L124.LC_bm2_R_Grass_Yh_GLU,
@@ -101,7 +98,6 @@ module_aglu_L124.LC_R_UnMgd_Yh_GLU <- function(command, ...) {
               L124.LC_bm2_R_UnMgdFor_Yh_GLU,
               L124.LC_bm2_R_UnMgdPast_Yh_GLU) ->
       L124.LC_bm2_R_LTunmgd_Yh_GLU
-
 
     # The initial estimates of shrubland, grassland, unmanaged pasture,
     # and unmanaged forest must have land deducted from them to cover
@@ -127,11 +123,20 @@ module_aglu_L124.LC_R_UnMgd_Yh_GLU <- function(command, ...) {
       select(-TotUnmgdLand, -ExtraCropland, -Land_Type) ->
       L124.LC_UnMgdAdj_R_Yh_GLU
 
+    L124.LC_UnMgdAdj_R_Yh_GLU$adjustmentRatio[is.infinite(L124.LC_UnMgdAdj_R_Yh_GLU$adjustmentRatio)] <- 0
+
+    adj <- L124.LC_UnMgdAdj_R_Yh_GLU$adjustmentRatio
+    if(any(is.na(adj))) {
+       stop("adjustmentRatio contains NA values")
+    }
+
+    if(any(!is.finite(adj))) {
+       stop("adjustmentRatio contains non-finite values")
+    }
     # Check that enough unmanaged land is available for the cropland expansion in all regions/GLUs
     if(any(L124.LC_UnMgdAdj_R_Yh_GLU$adjustmentRatio < 0)) {
       stop("Increase in cropland exceeds available unmanaged land")
     }
-
 
     # Apply the adjusment ratio to the different land types
     L124.LC_bm2_R_LTunmgd_Yh_GLU %>%
@@ -139,7 +144,6 @@ module_aglu_L124.LC_R_UnMgd_Yh_GLU <- function(command, ...) {
       mutate(value = value * adjustmentRatio) %>%
       select(-adjustmentRatio) ->
       L124.LC_bm2_R_LTunmgd_Yh_GLU_adj
-
 
     # Produce outputs
     L124.LC_bm2_R_LTunmgd_Yh_GLU_adj %>%
@@ -190,7 +194,7 @@ module_aglu_L124.LC_R_UnMgd_Yh_GLU <- function(command, ...) {
       L124.LC_bm2_R_UnMgdPast_Yh_GLU_adj
 
     L124.LC_bm2_R_LTunmgd_Yh_GLU_adj %>%
-      filter(Land_Type == "UnmanagedForest") %>%
+      filter(Land_Type %in% c("UnmanagedHardwood_Forest", "UnmanagedSoftwood_Forest")) %>%
       add_title("Unmanaged Forest land cover by GCAM region / historical year / GLU") %>%
       add_units("billion square meters (bm2)") %>%
       add_comments("Initial unmanaged forest area in each region-glu-year is calculated as total forest are in ") %>%

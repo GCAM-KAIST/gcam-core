@@ -46,7 +46,7 @@
 
 #include <string>
 
-class Market;
+class MarketContainer;
 class IInfo;
 class Value;
 
@@ -70,45 +70,45 @@ class Value;
 class CachedMarket
 {
 public:
-    CachedMarket( const std::string& aGoodName, const std::string& aRegionName, const int aPeriod, Market* aLocatedMarket );
+    CachedMarket();
+    CachedMarket( const gcamstr& aGoodName, const gcamstr& aRegionName, MarketContainer* aLocatedMarket );
     ~CachedMarket();
+    
+    bool hasLocatedMarket() { return mCachedMarket; }
 
-    void setPrice( const std::string& aGoodName, const std::string& aRegionName, const double aValue,
+    void setPrice( const gcamstr& aGoodName, const gcamstr& aRegionName, const double aValue,
                    const int aPeriod, bool aMustExist = true );
     
-    void addToSupply( const std::string& aGoodName, const std::string& aRegionName, const Value& aValue,
+    void addToSupply( const gcamstr& aGoodName, const gcamstr& aRegionName, const Value& aValue,
                       const int aPeriod, bool aMustExist = true );
     
-    void addToDemand( const std::string& aGoodName, const std::string& aRegionName, const Value& aValue,
+    void addToDemand( const gcamstr& aGoodName, const gcamstr& aRegionName, const Value& aValue,
                       const int aPeriod, bool aMustExist = true );
     
-    double getPrice( const std::string& aGoodName, const std::string& aRegionName, const int aPeriod,
+    double getPrice( const gcamstr& aGoodName, const gcamstr& aRegionName, const int aPeriod,
                      bool aMustExist = true ) const;
     
-    double getSupply( const std::string& aGoodName, const std::string& aRegionName,
+    double getSupply( const gcamstr& aGoodName, const gcamstr& aRegionName,
                       const int aPeriod ) const;
     
-    double getDemand( const std::string& aGoodName, const std::string& aRegionName,
+    double getDemand( const gcamstr& aGoodName, const gcamstr& aRegionName,
                       const int aPeriod ) const;
     
-    const IInfo* getMarketInfo( const std::string& aGoodName, const std::string& aRegionName,
+    const IInfo* getMarketInfo( const gcamstr& aGoodName, const gcamstr& aRegionName,
                                const int aPeriod, const bool aMustExist ) const;
     
-    IInfo* getMarketInfo( const std::string& aGoodName, const std::string& aRegionName,
+    IInfo* getMarketInfo( const gcamstr& aGoodName, const gcamstr& aRegionName,
                          const int aPeriod, const bool aMustExist );
 private:
 #ifndef NDEBUG
     //! The good name used when this market was located.  Used for debugging.
-    const std::string mGoodName;
+    const gcamstr mGoodName;
     
     //! The region name used when this market was located.  Used for debugging.
-    const std::string mRegionName;
-    
-    //! The period used when this market was located.  Used for debugging.
-    const int mPeriod;
+    const gcamstr mRegionName;
 #endif
     //! The actual market which is cached.
-    Market* mCachedMarket;
+    MarketContainer* mCachedMarket;
 };
 
 #endif // _CACHED_MARKET_H_

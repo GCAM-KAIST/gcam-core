@@ -22,10 +22,6 @@
 #' @author Yang Liu Dec 2019
 module_energy_L2325.chemical <- function(command, ...) {
 
-  INCOME_ELASTICITY_OUTPUTS <- c("GCAM3",
-                                 paste0("gSSP", 1:5),
-                                 paste0("SSP", 1:5))
-
   if(command == driver.DECLARE_INPUTS) {
     return(c(FILE = "common/GCAM_region_names",
              FILE = "energy/calibrated_techs",
@@ -216,7 +212,7 @@ module_energy_L2325.chemical <- function(command, ...) {
       mutate(output.ratio = elec_ratio / efficiency,
              output.ratio = round(output.ratio, energy.DIGITS_EFFICIENCY)) %>%
       # NOTE: holding the output ratio constant over time in future periods
-      left_join_error_no_match(select(filter(., year == max(MODEL_BASE_YEARS)), -efficiency, -elec_ratio),
+      left_join_error_no_match(select(filter(., year == MODEL_FINAL_BASE_YEAR), -efficiency, -elec_ratio),
                                by = c("supplysector", "subsector", "technology", "minicam.energy.input", "secondary.output")) %>%
       mutate(output.ratio = if_else(year.x %in% MODEL_BASE_YEARS, output.ratio.x, output.ratio.y)) %>%
       ungroup %>%
@@ -259,12 +255,13 @@ module_energy_L2325.chemical <- function(command, ...) {
       select(LEVEL2_DATA_NAMES[["GlobalTechCost"]]) ->
       L2325.GlobalTechCost_chemical # intermediate tibble
 
-    FCR <- (socioeconomics.DEFAULT_INTEREST_RATE * (1+socioeconomics.DEFAULT_INTEREST_RATE)^socioeconomics.INDUSTRY_CAP_PAYMENTS) /
-      ((1+socioeconomics.DEFAULT_INTEREST_RATE)^socioeconomics.INDUSTRY_CAP_PAYMENTS -1)
     L2325.GlobalTechCost_chemical %>%
       # we only want to track investments in energy, otherwise we double accounting with materials
       filter(grepl('energy use', sector.name)) %>%
-      mutate(capital.coef = socioeconomics.INDUSTRY_CAPITAL_RATIO / FCR,
+      mutate(capital.ratio = socioeconomics.INDUSTRY_CAPITAL_RATIO,
+             interest.rate = socioeconomics.DEFAULT_INTEREST_RATE,
+             payback.years = socioeconomics.INDUSTRY_CAP_PAYMENTS,
+             invest.unit.conversion = 1,
              tracking.market = socioeconomics.EN_CAPITAL_MARKET_NAME,
              # vintaging is active so no need for depreciation
              depreciation.rate = 0) %>%
@@ -297,7 +294,7 @@ module_energy_L2325.chemical <- function(command, ...) {
     # filters base years from original and then appends future years
     L2325.globaltech_retirement_base %>%
       mutate(year = as.integer(year)) %>%
-      filter(year == max(MODEL_BASE_YEARS)) %>%
+      filter(year == MODEL_FINAL_BASE_YEAR) %>%
       bind_rows(L2325.globaltech_retirement_future) ->
       L2325.globaltech_retirement
 
@@ -458,7 +455,7 @@ module_energy_L2325.chemical <- function(command, ...) {
       ungroup()  ->
       L2325.BaseService_chemical
 
-    #For regions with 0 in base year, modify Subsector shareweight and interpolation
+    #For regions with 0 production in base year, modify Subsector shareweight interpolation (from fixed to linear)
     L2325.out_EJ_R_ind_serv_F_Yh %>%
       group_by(region,supplysector, GCAM_region_ID, year) %>%
       summarise(value = sum(calOutputValue)) %>%
@@ -466,12 +463,6 @@ module_energy_L2325.chemical <- function(command, ...) {
       select(region, year, supplysector,value) %>%
       filter(value == 0, year == MODEL_FINAL_BASE_YEAR)  ->
       nobaseyear
-
-    L2325.SubsectorShrwtFllt_chemical %>%
-      left_join(nobaseyear, by = c("region", "supplysector")) %>%
-      mutate(value = replace_na(value,1),share.weight = if_else(value ==0,0.5,share.weight),year = NULL,value = NULL) ->
-      L2325.SubsectorShrwtFllt_chemical
-
 
     L2325.SubsectorInterp_chemical %>%
       left_join(nobaseyear, by = c("region", "supplysector")) %>%

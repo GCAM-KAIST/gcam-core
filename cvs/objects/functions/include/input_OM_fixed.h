@@ -69,7 +69,6 @@ class Tabs;
  *              - \c OM-fixed InputOMFixed::mOMFixed
  *              - \c capacity-factor InputOMFixed::mCapacityFactor
  *              - \c levelized-OM-fixed InputOMFixed::mLevelizedOMFixedCost
- *              - \c tech-change InputOMFixed::mTechChange
  *
  * \author Josh Lurz
  */
@@ -98,14 +97,14 @@ public:
     virtual void copyParamsInto( InputOMFixed& aInput,
                                 const int aPeriod ) const;
 
-    virtual void completeInit( const std::string& aRegionName,
-                               const std::string& aSectorName,
-                               const std::string& aSubsectorName,
-                               const std::string& aTechName,
+    virtual void completeInit( const gcamstr& aRegionName,
+                               const gcamstr& aSectorName,
+                               const gcamstr& aSubsectorName,
+                               const gcamstr& aTechName,
                                const IInfo* aTechInfo );
     
-    virtual void initCalc( const std::string& aRegionName,
-                           const std::string& aSectorName,
+    virtual void initCalc( const gcamstr& aRegionName,
+                           const gcamstr& aSectorName,
                            const bool aIsNewInvestmentPeriod,
                            const bool aIsTrade,
                            const IInfo* aTechInfo,
@@ -114,17 +113,17 @@ public:
     double getPhysicalDemand( const int aPeriod ) const;
 
     void setPhysicalDemand( const double aPhysicalDemand,
-                            const std::string& aRegionName,
+                            const gcamstr& aRegionName,
                             const int aPeriod );
 
-    double getPrice( const std::string& aRegionName,
+    double getPrice( const gcamstr& aRegionName,
                      const int aPeriod ) const;
     
-    virtual void setPrice( const std::string& aRegionName,
+    virtual void setPrice( const gcamstr& aRegionName,
                            const double aPrice,
                            const int aPeriod );
 
-    double getCO2EmissionsCoefficient( const std::string& aGHGName,
+    double getCO2EmissionsCoefficient( const gcamstr& aGHGName,
                                     const int aPeriod ) const;
 
     double getCoefficient( const int aPeriod ) const;
@@ -132,7 +131,7 @@ public:
     void setCoefficient( const double aCoefficient,
                          const int aPeriod );
 
-    void tabulateFixedQuantity( const std::string& aRegionName,
+    void tabulateFixedQuantity( const gcamstr& aRegionName,
                                 const double aFixedOutput,
                                 const bool aIsInvestmentPeriod,
                                 const int aPeriod );
@@ -146,8 +145,6 @@ public:
     virtual double getIncomeElasticity( const int aPeriod ) const;
 
     virtual double getPriceElasticity( const int aPeriod ) const;
-
-    virtual double getTechChange( const int aPeriod ) const;
     
     virtual void doInterpolations( const int aYear, const int aPreviousYear,
                                    const int aNextYear, const IInput* aPreviousInput,
@@ -160,27 +157,11 @@ protected:
     DEFINE_DATA_WITH_PARENT(
         MiniCAMInput,
         
-        //! Cost of the non-energy input adjusted for the additional costs of the
-        //! capture component.
-        DEFINE_VARIABLE( ARRAY | NOT_PARSABLE, "adjusted-cost", mAdjustedCosts, objects::TechVintageVector<Value> ),
-        
-        //! Coefficient for production or demand function. Coefficients are not
-        // read in and are initialized to 1, but can increase over time with
-        // technical change.
-        DEFINE_VARIABLE( ARRAY | NOT_PARSABLE, "adjusted-coef", mAdjustedCoefficients, objects::TechVintageVector<Value> ),
-        
-        //! Input specific technical change.
-        DEFINE_VARIABLE( SIMPLE, "tech-change", mTechChange, Value ),
-        
         //! Variable O&M cost.
         DEFINE_VARIABLE( SIMPLE, "OM-fixed", mOMFixed, Value ),
         
         //! Calculated value for the levelized cost of capital.
-        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "levelized-OM-fixed", mLevelizedOMFixedCost, Value ),
-        
-        //! Technology capacity factor.
-        // TODO: create one in technology and use that instead.
-        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "capacity-factor", mCapacityFactor, double )
+        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "levelized-OM-fixed", mLevelizedOMFixedCost, Value )
     )
     
     void copy( const InputOMFixed& aOther );
@@ -189,7 +170,7 @@ private:
     const static std::string XML_REPORTING_NAME; //!< tag name for reporting xml db 
 
     // Function to calculate the levelized fixed O&M cost.
-    double calcLevelizedOMFixedCost( void ) const;
+    double calcLevelizedOMFixedCost( const double aCapFactor ) const;
 
 };
 

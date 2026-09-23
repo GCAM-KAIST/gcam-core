@@ -236,9 +236,9 @@ bool Technology::isVintagingActive() const {
 * \author Josh Lurz
 * \warning Markets are not necessarily set when completeInit is called
 */
-void Technology::completeInit( const string& aRegionName,
-                               const string& aSectorName,
-                               const string& aSubsectorName,
+void Technology::completeInit( const gcamstr& aRegionName,
+                               const gcamstr& aSectorName,
+                               const gcamstr& aSubsectorName,
                                const IInfo* aSubsectorInfo,
                                ILandAllocator* aLandAllocator )
 {
@@ -285,35 +285,6 @@ void Technology::completeInit( const string& aRegionName,
     // We must take care of this early in completeInit in case any of those objects will
     // need to acccess those TechVintageVector for any reason then they will be able to.
     initTechVintageVector();
-    
-    // Check if both the original MiniCAM non-energy-input and the new input-capital
-    // are in the vector.  If so, eliminate the non-energy-input and use input-capital 
-    // only so that non-energy costs are not double accounted.
-    // Does not check for fixed and variable O&M, however.
-    vector<IInput*>::iterator iterNonEnergy = mInputs.end();
-    vector<IInput*>::iterator iterCapital = mInputs.end();
-	
-    // First look for input-capital since most technologies will have non-energy-input.
-    for( vector<IInput*>::iterator iter = mInputs.begin(); iter != mInputs.end(); ++iter ) {
-        // Cannot use hasTypeFlag() as both have same type.
-        if( ( *iter )->isSameType( InputCapital::getXMLNameStatic() ) ){
-            iterCapital = iter;
-        }
-    }
-    // Only look for non-energy-input iterator if input-capital iterator is found.
-    if( iterCapital != mInputs.end() ){
-        for( vector<IInput*>::iterator iter = mInputs.begin(); iter != mInputs.end(); ++iter ) {
-            // Cannot use hasTypeFlag() as both have same type.
-            if( ( *iter )->isSameType( NonEnergyInput::getXMLNameStatic() ) ){
-                iterNonEnergy = iter;
-            }
-        }
-    }
-    // If both are found, then eliminate the orginal non-energy-input since the 
-    // more detailed levelized capital calculation is intended to be used.
-    //if( iterNonEnergy != mInputs.end() && iterCapital != mInputs.end() ){
-    // mInputs.erase( iterNonEnergy );
-	//}
     
     // Complete the initialization of the inputs. Pass the inputs and outputs
     // the most local info object available.
@@ -486,8 +457,8 @@ const string& Technology::getXMLVintageNameStatic()
 *        next period may access it.
 * \param aPeriod Model period.
 */
-void Technology::initCalc( const string& aRegionName,
-                           const string& aSectorName,
+void Technology::initCalc( const gcamstr& aRegionName,
+                           const gcamstr& aSectorName,
                            const IInfo* aSubsectorInfo,
                            const Demographic* aDemographics,
                            PreviousPeriodInfo& aPrevPeriodInfo,
@@ -554,8 +525,7 @@ void Technology::initCalc( const string& aRegionName,
     }
 
     if( mCaptureComponent ) {
-        mCaptureComponent->initCalc( aRegionName, aSectorName, "", aPeriod );
-        mCaptureComponent->adjustInputs( aRegionName, mInputs, aPeriod );
+        mCaptureComponent->initCalc( aRegionName, aSectorName, aPeriod );
     }
 
     for( unsigned int i = 0; i < mOutputs.size(); ++i ) {
@@ -623,7 +593,7 @@ void Technology::setProductionState( const int aPeriod ){
  * \param aPeriod The period to calculate this value for.
  * \return Total secondary value.
  */
-double Technology::calcSecondaryValue( const string& aRegionName,
+double Technology::calcSecondaryValue( const gcamstr& aRegionName,
                                        const int aPeriod ) const
 {
     double totalValue = 0;
@@ -646,7 +616,7 @@ double Technology::calcSecondaryValue( const string& aRegionName,
 * \param aRegionName Region name.
 * \param aPeriod Model period that has solved.
 */
-void Technology::postCalc( const string& aRegionName,
+void Technology::postCalc( const gcamstr& aRegionName,
                            const int aPeriod )
 {
     if( mProductionState[ aPeriod ]->isOperating() ) {
@@ -675,8 +645,8 @@ void Technology::postCalc( const string& aRegionName,
 * \param aPeriod The period to calculate this value for.
 * \return The total emissions and storage cost of all ghgs.
 */
-double Technology::getTotalGHGCost( const string& aRegionName,
-                                    const string& aSectorName,
+double Technology::getTotalGHGCost( const gcamstr& aRegionName,
+                                    const gcamstr& aSectorName,
                                     const int aPeriod ) const
 {
     double totalGHGCost = 0;
@@ -702,7 +672,7 @@ double Technology::getTotalGHGCost( const string& aRegionName,
  * \return Log of the numerator of the technology share.
  * \sa Subsector::calcShare()
  */ 
-double Technology::calcShare( const std::string& aRegionName,
+double Technology::calcShare( const gcamstr& aRegionName,
                               const IDiscreteChoice* aChoiceFn,
                               int aPeriod ) const
 {
@@ -779,8 +749,8 @@ const IFunction* Technology::getProductionFunction() const
 * \return Value of fixed output for this Technology
 * \author Steve Smith
 */
-double Technology::getFixedOutput( const string& aRegionName,
-                                   const string& aSectorName,
+double Technology::getFixedOutput( const gcamstr& aRegionName,
+                                   const gcamstr& aSectorName,
                                    const bool aHasRequiredInput,
                                    const string& aRequiredInput,
                                    const double aMarginalRevenue,
@@ -822,8 +792,8 @@ double Technology::getFixedOutput( const string& aRegionName,
 * \param aGDP Regional GDP container.
 * \param aPeriod Model period.
 */
-void Technology::production( const string& aRegionName,
-                             const string& aSectorName,
+void Technology::production( const gcamstr& aRegionName,
+                             const gcamstr& aSectorName,
                              double aVariableDemand,
                              double aFixedOutputScaleFactor,
                              const int aPeriod )
@@ -877,8 +847,8 @@ void Technology::production( const string& aRegionName,
  * \param aPrimaryOutput Primary output quantity.
  * \param aPeriod Period.
  */
-void Technology::calcEmissionsAndOutputs( const string& aRegionName,
-                                          const string& aSectorName,
+void Technology::calcEmissionsAndOutputs( const gcamstr& aRegionName,
+                                          const gcamstr& aSectorName,
                                           const double aPrimaryOutput,
                                           const int aPeriod )
 {
@@ -905,8 +875,8 @@ void Technology::calcEmissionsAndOutputs( const string& aRegionName,
 * \param aSectorName Sector name.
 * \param aPeriod Period.
 */
-double Technology::getCurrencyConversionPrice( const string& aRegionName,
-                                               const string& aSectorName,
+double Technology::getCurrencyConversionPrice( const gcamstr& aRegionName,
+                                               const gcamstr& aSectorName,
                                                const int aPeriod ) const
 {
     // mMarginalRevenue is in 1975$/GJ
@@ -918,7 +888,7 @@ double Technology::getCurrencyConversionPrice( const string& aRegionName,
 * \author Sonny Kim
 * \return sector name as a string
 */
-const string& Technology::getName() const
+const gcamstr& Technology::getName() const
 {
     return mName;
 }
@@ -1120,8 +1090,8 @@ double Technology::getOutput( const int aPeriod ) const
 * \param aPeriod Period in which to calculate the input cost.
 * \return A calculated input cost for the Technology.
 */
-double Technology::getTotalInputCost( const string& aRegionName,
-                                      const string& aSectorName,
+double Technology::getTotalInputCost( const gcamstr& aRegionName,
+                                      const gcamstr& aSectorName,
                                       const int aPeriod ) const
 {
     /*! \pre The technology must have a production function. */
@@ -1139,8 +1109,8 @@ double Technology::getTotalInputCost( const string& aRegionName,
 * \param aPeriod Period in which to calculate the energy cost.
 * \return A calculated energy cost for the Technology.
 */
-double Technology::getEnergyCost( const string& aRegionName,
-                                  const string& aSectorName,
+double Technology::getEnergyCost( const gcamstr& aRegionName,
+                                  const gcamstr& aSectorName,
                                   const int aPeriod ) const
 {
     // Calculates the energy cost by first calculating the total cost including
@@ -1198,7 +1168,7 @@ double Technology::getCalibrationOutput( const bool aHasRequiredInput,
     assert( !aHasRequiredInput || ( !aRequiredInput.empty() && aRequiredInput != "allInputs" ) );
 
     // Check if this is an existing vintage which cannot have a calibration value.
-    if( !mProductionState[ aPeriod ]->isNewInvestment() ) {
+    if(!mProductionState[aPeriod] || !mProductionState[ aPeriod ]->isNewInvestment() ) {
         return -1;
     }
 
@@ -1253,8 +1223,8 @@ bool Technology::hasCalibratedValue( const int aPeriod ) const {
 * \param aRegionName Region name.
 * \param aSectorName SectorName
 */
-void Technology::calcCost( const string& aRegionName,
-                           const string& aSectorName,
+void Technology::calcCost( const gcamstr& aRegionName,
+                           const gcamstr& aSectorName,
                            const int aPeriod )
 {
     // A Technology can only calculate costs if it is operating
@@ -1390,9 +1360,9 @@ const AGHG* Technology::getGHGPointer( const string& aGHGName ) const {
 */
 bool Technology::isAllCalibrated( const int aPeriod,
                                   double aCalAccuracy,
-                                  const string& aRegionName,
-                                  const string& aSectorName,
-                                  const string& aSubsectorName,
+                                  const gcamstr& aRegionName,
+                                  const gcamstr& aSectorName,
+                                  const gcamstr& aSubsectorName,
                                   const bool aPrintWarnings ) const
 {
     // Check that the period is the new vintage period and does not have any calibrated values.
@@ -1416,16 +1386,19 @@ bool Technology::isAllCalibrated( const int aPeriod,
 		output -= fixedOutput;
 	}
     double relativeDiff;
+	double absDiff;
     double sectorOutput = scenario->getMarketplace()->getSupply( aSectorName, aRegionName, aPeriod );
 
     // Do not write warning to main log if the calibration value or the
     // relative difference is smaller than the criteria for calibration accuracy.
     if( calOutput > aCalAccuracy ) {
-        relativeDiff = fabs( output - calOutput ) / calOutput;
+        absDiff = output - calOutput;
+		relativeDiff = absDiff / calOutput;	
     }
     else {
         // Use absolute accuracy since the calibrated output level is zero.
-        relativeDiff = fabs( output - calOutput );
+        absDiff = output - calOutput;
+        relativeDiff = absDiff;
     }
     // Return false (not calibrated) and print warning only if relativeDiff is
     // greater than the calibration accuracy.
@@ -1437,7 +1410,7 @@ bool Technology::isAllCalibrated( const int aPeriod,
      *          a very tight tolerence we probably won't be able to calibrate exactly when scales
      *          are so different.
      */
-    if( relativeDiff > aCalAccuracy && ( fabs( output - calOutput ) ) > aCalAccuracy * sectorOutput ) {
+    if( relativeDiff > aCalAccuracy && ( fabs( absDiff ) ) > aCalAccuracy * sectorOutput ) {
         // Print warning then return false.
         if( aPrintWarnings ) {
             double sectorShare = sectorOutput > 0.0 ? calOutput / sectorOutput : numeric_limits<double>::quiet_NaN();
@@ -1454,6 +1427,7 @@ bool Technology::isAllCalibrated( const int aPeriod,
             mainLog.precision(4); // for floating-point
             mainLog << " Output: "; mainLog.width(8); mainLog << output;
             mainLog << " Calibration: "; mainLog.width(8); mainLog << calOutput;
+			mainLog << " absDiff: "; mainLog.width(8); mainLog << absDiff;
             mainLog << " relativeDiff: "; mainLog.width(8); mainLog << relativeDiff;
             mainLog << " SectorOutput: "; mainLog.width(8); mainLog << sectorOutput;
             mainLog << " SectorShare: "; mainLog.width(8); mainLog << sectorShare;
@@ -1495,8 +1469,8 @@ int Technology::getYear() const {
 * \param aPeriod Model period.
 * \return The marginal revenue.
 */
-double Technology::getMarginalRevenue( const string& aRegionName,
-                                       const string& aSectorName,
+double Technology::getMarginalRevenue( const gcamstr& aRegionName,
+                                       const gcamstr& aSectorName,
                                        const int aPeriod ) const
 {
     double marginalRevenue = mMarginalRevenue;

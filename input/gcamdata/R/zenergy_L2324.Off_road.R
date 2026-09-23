@@ -22,10 +22,6 @@
 #' @author Yang Liu Sep 2019, Molly Charles 2020-21, 2022 modifications from Jay Fuhrman, Siddarth Durga, Page Kyle
 module_energy_L2324.Off_road <- function(command, ...) {
 
-  INCOME_ELASTICITY_OUTPUTS <- c("GCAM3",
-                                 paste0("gSSP", 1:5),
-                                 paste0("SSP", 1:5))
-
   if(command == driver.DECLARE_INPUTS) {
     return(c(FILE = "common/GCAM_region_names",
              FILE = "energy/calibrated_techs",
@@ -215,7 +211,7 @@ module_energy_L2324.Off_road <- function(command, ...) {
       complete(nesting(supplysector, subsector, technology), year = c(year, MODEL_BASE_YEARS, MODEL_FUTURE_YEARS)) %>%
       arrange(supplysector, subsector, technology, year) %>%
       group_by(supplysector, subsector, technology) %>%
-      mutate(share.weight = approx_fun(year, value, rule = 1)) %>%
+      mutate(share.weight = round(approx_fun(year, value, rule = 1), energy.DIGITS_SHRWT)) %>%
       ungroup %>%
       filter(year %in% c(MODEL_BASE_YEARS, MODEL_FUTURE_YEARS)) %>%
       rename(sector.name = supplysector,
@@ -239,12 +235,13 @@ module_energy_L2324.Off_road <- function(command, ...) {
       select(LEVEL2_DATA_NAMES[["GlobalTechCost"]]) ->
       L2324.GlobalTechCost_Off_road # intermediate tibble
 
-    FCR <- (socioeconomics.DEFAULT_INTEREST_RATE * (1+socioeconomics.DEFAULT_INTEREST_RATE)^energy.NPER_AMORT_VEH) /
-      ((1+socioeconomics.DEFAULT_INTEREST_RATE)^energy.NPER_AMORT_VEH -1)
     L2324.GlobalTechCost_Off_road %>%
       # we only want to track investments in energy, otherwise we double accounting with materials
       filter(grepl('energy use', sector.name)) %>%
-      mutate(capital.coef = socioeconomics.INDUSTRY_CAPITAL_RATIO / FCR,
+      mutate(capital.ratio = socioeconomics.INDUSTRY_CAPITAL_RATIO,
+             interest.rate = socioeconomics.DEFAULT_INTEREST_RATE,
+             payback.years = energy.NPER_AMORT_VEH,
+             invest.unit.conversion = 1,
              tracking.market = socioeconomics.EN_CAPITAL_MARKET_NAME,
              # vintaging is active so no need for depreciation
              depreciation.rate = 0) %>%
@@ -277,7 +274,7 @@ module_energy_L2324.Off_road <- function(command, ...) {
     # filters base years from original and then appends future years
     L2324.globaltech_retirement_base %>%
       mutate(year = as.integer(year)) %>%
-      filter(year == max(MODEL_BASE_YEARS)) %>%
+      filter(year == MODEL_FINAL_BASE_YEAR) %>%
       bind_rows(L2324.globaltech_retirement_future) ->
       L2324.globaltech_retirement
 

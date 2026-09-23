@@ -124,16 +124,16 @@ protected:
         DEFINE_SUBCLASS_FAMILY( Logger ),
                 
         //! Logger name
-        DEFINE_VARIABLE( SIMPLE, "name", mName, std::string ),
+        DEFINE_VARIABLE( SIMPLE, "name", mName, gcamstr ),
         
         //! Logger type
-        DEFINE_VARIABLE( SIMPLE, "type", mType, std::string ),
+        DEFINE_VARIABLE( SIMPLE, "type", mType, gcamstr ),
 
         //! File name of the file it uses.
-        DEFINE_VARIABLE( SIMPLE, "FileName", mFileName, std::string ),
+        DEFINE_VARIABLE( SIMPLE, "FileName", mFileName, gcamstr ),
         
         //! Header message to print at the beginning of the log.
-        DEFINE_VARIABLE( SIMPLE, "headerMessage", mHeaderMessage, std::string ),
+        DEFINE_VARIABLE( SIMPLE, "headerMessage", mHeaderMessage, gcamstr ),
         
         //! Defines the minimum level of messages which should be printed.
         DEFINE_VARIABLE( SIMPLE, "minLogWarningLevel", mMinLogWarningLevel, ILogger::WarningLevel ),
@@ -148,7 +148,11 @@ protected:
         DEFINE_VARIABLE( SIMPLE, "printLogWarningLevel", mPrintLogWarningLevel, bool )
     )
 
-    Logger( const std::string& aFileName = "" );
+    //! Keep an explict reference to the console output, in case it needs to go
+    //! somewhere other than std::cout
+    std::ostream* mCout;
+
+    Logger( std::ostream* aCout, const std::string& aFileName = "" );
     
 	//! Log a message with the given warning level.
     virtual void logCompleteMessage( const std::string& aMessage ) = 0;

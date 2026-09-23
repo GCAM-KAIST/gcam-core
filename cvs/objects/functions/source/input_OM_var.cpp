@@ -97,7 +97,6 @@ InputOMVar* InputOMVar::clone() const {
 void InputOMVar::copy( const InputOMVar& aOther ) {
     MiniCAMInput::copy( aOther );
     
-    mTechChange = aOther.mTechChange;
     mOMVar = aOther.mOMVar;
     
     // calculated parameters are not copied.
@@ -119,7 +118,7 @@ void InputOMVar::copyParamsInto( InputOMVar& aInput,
     // Copy the coefficients forward. This is done to adjust for technical
     // change which already occurred.
     assert( aPeriod > 0 );
-    aInput.mAdjustedCoefficients[ aPeriod ] = mAdjustedCoefficients[ aPeriod - 1 ];
+    aInput.mOMVar = mOMVar;
 }
 
 void InputOMVar::toDebugXML( const int aPeriod,
@@ -129,23 +128,15 @@ void InputOMVar::toDebugXML( const int aPeriod,
     XMLWriteOpeningTag ( getXMLNameStatic(), aOut, aTabs, mName );
     XMLWriteElement( calcOMVarCost(), "levelized-OM-var", aOut, aTabs );
     XMLWriteElement( mOMVar, "OM-var", aOut, aTabs );
-    XMLWriteElement( mTechChange, "tech-change", aOut, aTabs );
-    XMLWriteElement( mAdjustedCosts[ aPeriod ], "adjusted-cost", aOut, aTabs );
-    XMLWriteElement( mAdjustedCoefficients[ aPeriod ], "adjusted-coef", aOut, aTabs );
     XMLWriteClosingTag( getXMLNameStatic(), aOut, aTabs );
 }
 
-void InputOMVar::completeInit( const string& aRegionName,
-                               const string& aSectorName,
-                               const string& aSubsectorName,
-                               const string& aTechName,
+void InputOMVar::completeInit( const gcamstr& aRegionName,
+                               const gcamstr& aSectorName,
+                               const gcamstr& aSubsectorName,
+                               const gcamstr& aTechName,
                                const IInfo* aTechInfo )
-{   
-    // Initialize the adjusted costs in all periods to the base calculate
-    // levelized OM-var cost.
-    // These costs may be adjusted by the Technology, for instance for capture
-    // penalties.
-    fill( mAdjustedCosts.begin(), mAdjustedCosts.end(), Value( calcOMVarCost() ) );
+{
 }
 
 /** Calculate the levelizd OM_fixed cost.
@@ -157,36 +148,30 @@ void InputOMVar::completeInit( const string& aRegionName,
 double InputOMVar::calcOMVarCost( void ) const
 {
 	//read in as $/MWh
-    double OMVarCost = mOMVar /(1000 * FunctionUtils::GJ_PER_KWH());
+    double OMVarCost = mOMVar /(1000.0 * FunctionUtils::GJ_PER_KWH());
 	
     return OMVarCost; // 1975$/GJ
 }
 
-void InputOMVar::initCalc( const string& aRegionName,
-                           const string& aSectorName,
+void InputOMVar::initCalc( const gcamstr& aRegionName,
+                           const gcamstr& aSectorName,
                            const bool aIsNewInvestmentPeriod,
                            const bool aIsTrade,
                            const IInfo* aTechInfo,
                            const int aPeriod )
 {
-    // Initialize the current coefficient to 1 if it has not 
-    // been initialized through copyParam. It may be adjusted
-    // later when coefficients are copied forward.
-    mAdjustedCoefficients[ aPeriod ] = 1;
 }
 
-double InputOMVar::getPrice( const string& aRegionName,
+double InputOMVar::getPrice( const gcamstr& aRegionName,
                              const int aPeriod ) const
 {
-    assert( mAdjustedCosts[ aPeriod ].isInited() );
-    return mAdjustedCosts[ aPeriod ];
+    return calcOMVarCost();
 }
 
-void InputOMVar::setPrice( const string& aRegionName,
+void InputOMVar::setPrice( const gcamstr& aRegionName,
                            const double aPrice,
                            const int aPeriod ) 
 {
-    mAdjustedCosts[ aPeriod ] = aPrice;
 }
 
 double InputOMVar::getPhysicalDemand( const int aPeriod ) const {
@@ -194,13 +179,13 @@ double InputOMVar::getPhysicalDemand( const int aPeriod ) const {
 }
 
 void InputOMVar::setPhysicalDemand( double aPhysicalDemand,
-                                    const string& aRegionName,
+                                    const gcamstr& aRegionName,
                                     const int aPeriod )
 {
     // Does not add to the marketplace.
 }
 
-double InputOMVar::getCO2EmissionsCoefficient( const string& aGHGName,
+double InputOMVar::getCO2EmissionsCoefficient( const gcamstr& aGHGName,
                                             const int aPeriod ) const
 {
     // Capital cost inputs cannot have emissions coefficients.
@@ -208,17 +193,17 @@ double InputOMVar::getCO2EmissionsCoefficient( const string& aGHGName,
 }
 
 double InputOMVar::getCoefficient( const int aPeriod ) const {
-    assert( mAdjustedCoefficients[ aPeriod ].isInited() );
-    return mAdjustedCoefficients[ aPeriod ];
+    return 1.0;
 }
 
 void InputOMVar::setCoefficient( const double aCoefficient,
                                  const int aPeriod )
 {
-    mAdjustedCoefficients[ aPeriod ] = aCoefficient;
+    assert(false);
+    // not available
 }
 
-void InputOMVar::tabulateFixedQuantity( const string& aRegionName,
+void InputOMVar::tabulateFixedQuantity( const gcamstr& aRegionName,
                                         const double aFixedOutput,
                                         const bool aIsInvestmentPeriod,
                                         const int aPeriod )
@@ -247,11 +232,6 @@ double InputOMVar::getPriceElasticity( const int aPeriod ) const {
     return 0;
 }
 
-double InputOMVar::getTechChange( const int aPeriod ) const
-{
-    return mTechChange;
-}
-
 void InputOMVar::doInterpolations( const int aYear, const int aPreviousYear,
                                     const int aNextYear, const IInput* aPreviousInput,
                                     const IInput* aNextInput )
@@ -268,9 +248,6 @@ void InputOMVar::doInterpolations( const int aYear, const int aPreviousYear,
      * \pre We are given a valid InputOMVar for the next input.
      */
     assert( nextOMInput );
-    
-    // tech change is just copied from the next input
-    mTechChange = nextOMInput->mTechChange;
     
     // interpolate the costs
     mOMVar = util::linearInterpolateY( aYear, aPreviousYear, aNextYear,

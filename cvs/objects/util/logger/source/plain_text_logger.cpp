@@ -49,22 +49,23 @@
 using namespace std;
 
 //! Constructor
-PlainTextLogger::PlainTextLogger( const string& aLoggerName ):Logger( aLoggerName ){
+PlainTextLogger::PlainTextLogger( std::ostream* aCout, const string& aLoggerName ):Logger( aCout, aLoggerName ){
 }
 
 //! Tells the logger to begin logging.
 void PlainTextLogger::open( const char[] ){
     if( mFileName.empty() ) { // set a default value
-        cout << "Using default log file name." << endl;
+        (*mCout) << "Using default log file name." << endl;
         mFileName = "log.txt";
     }
 
-    mLogFile.open( mFileName.c_str(), ios::out );
+    mLogFile.open( mFileName.get().c_str(), ios::out );
 
     // Print the header message
     if( !mHeaderMessage.empty() ){
-        parseHeader( mHeaderMessage );
-        mLogFile << mHeaderMessage << endl << endl;
+        string currHeader = mHeaderMessage;
+        parseHeader( currHeader );
+        mLogFile << currHeader << endl << endl;
     }
 }
 

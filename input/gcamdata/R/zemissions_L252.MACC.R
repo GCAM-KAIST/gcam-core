@@ -30,6 +30,7 @@ module_emissions_L252.MACC <- function(command, ...) {
              FILE = "emissions/mappings/CEDS_sector_tech_proc_revised",
              FILE = "common/GCAM_region_names",
              FILE = "emissions/EPA_MACC_PhaseInTime",
+             FILE = "emissions/mappings/USAbld_emission_mapping",
              "L152.MAC_pct_R_S_Proc_EPA",
              "L201.ghg_res",
              "L211.AGREmissions",
@@ -37,7 +38,8 @@ module_emissions_L252.MACC <- function(command, ...) {
              "L211.AGRBio",
              "L232.nonco2_prc",
              "L241.hfc_all",
-             "L241.pfc_all"))
+             "L241.pfc_all",
+             FILE = "socioeconomics/income_shares"))
   } else if(command == driver.DECLARE_OUTPUTS) {
     return(c("L252.ResMAC_fos",
              "L252.AgMAC",
@@ -93,7 +95,7 @@ module_emissions_L252.MACC <- function(command, ...) {
       GCAM_sector_tech <- get_data(all_data, "emissions/mappings/CEDS_sector_tech_proc_revised")
 
     }
-
+    USAbld_emission_mapping      <- get_data(all_data, "emissions/mappings/USAbld_emission_mapping")
     L152.MAC_pct_R_S_Proc_EPA <- get_data(all_data, "L152.MAC_pct_R_S_Proc_EPA")
     L201.ghg_res <- get_data(all_data, "L201.ghg_res", strip_attributes = TRUE)
     L211.AGREmissions <- get_data(all_data, "L211.AGREmissions", strip_attributes = TRUE)
@@ -103,7 +105,30 @@ module_emissions_L252.MACC <- function(command, ...) {
     L241.hfc_all <- get_data(all_data, "L241.hfc_all", strip_attributes = TRUE)
     L241.pfc_all <- get_data(all_data, "L241.pfc_all", strip_attributes = TRUE)
     EPA_MACC_PhaseInTime <- get_data(all_data, "emissions/EPA_MACC_PhaseInTime")
+    income_shares<-get_data(all_data, "socioeconomics/income_shares")
+    groups<-income_shares %>% select(category) %>% distinct()
 
+
+    # First, adjust GCAM_sector_tech to include consumer-group data
+    GCAM_sector_tech_resid<- GCAM_sector_tech %>%
+      filter(grepl("resid",sector)) %>%
+      repeat_add_columns(tibble(group = unique(income_shares$category))) %>%
+      unite(sector,c("sector","group"),sep = "_", remove = F) %>%
+      unite(supplysector,c("supplysector","group"),sep = "_", remove = T)
+
+    #Also include the detailed technologies indicated in USAbld_emission_mapping
+    GCAM_sector_tech_USAbld <- bind_rows(GCAM_sector_tech_resid, filter(GCAM_sector_tech, grepl("comm",sector))) %>%
+      inner_join(select(USAbld_emission_mapping, -region),
+                by = c(supplysector = "from.supplysector", subsector = "from.subsector", stub.technology = "from.stub.technology")) %>%
+      mutate(supplysector = if_else(is.na(to.supplysector), supplysector, to.supplysector),
+             subsector = if_else(is.na(to.subsector), subsector, to.subsector),
+             stub.technology  = if_else(is.na(to.stub.technology ), stub.technology , to.stub.technology)) %>%
+      select(-to.supplysector, -to.subsector, -to.stub.technology)
+
+    GCAM_sector_tech<- GCAM_sector_tech %>%
+      filter(!grepl("resid",sector)) %>%
+      bind_rows(GCAM_sector_tech_resid,
+                GCAM_sector_tech_USAbld)
 
     # update MAC using 2019 EPA
     # Prepare the table with all MAC curves for matching
@@ -118,13 +143,13 @@ module_emissions_L252.MACC <- function(command, ...) {
     # This is a function to add in the mac.reduction curves to data
     # Function needed because these steps are repeated 5 times
 
-    mac_reduction_adder <- function(df, error_no_match = TRUE) {
+    mac_reduction_adder <- function(df, error_no_match = FALSE) {
       df <- df %>%
         # Add tax values
         repeat_add_columns(tibble(tax = MAC_taxes)) %>%
         repeat_add_columns(tibble(year = emissions.EPA_MACC_YEAR)) %>%
-        # we don't need MACs for calibration years
-        filter(!year %in% MODEL_BASE_YEARS)
+        # we don't have MACs for historical years
+        filter(year > FINAL_HISTORICAL_YEAR)
       # Next, add in mac.reduction values
       if(error_no_match) {
         # Usually we use left_join_error_no_match
@@ -670,8 +695,8 @@ module_emissions_L252.MACC <- function(command, ...) {
       add_comments("Category data from L241.hfc_all and L241.pfc_all given tax and mac.reduction data from L152.MAC_pct_R_S_Proc_EPA") %>%
       add_legacy_name("L252.MAC_higwp") %>%
       add_precursors("emissions/A_regions", "emissions/mappings/CEDS_sector_tech_proc", "emissions/mappings/CEDS_sector_tech_proc_revised",
-                     "L152.MAC_pct_R_S_Proc_EPA", "L241.hfc_all", "L241.pfc_all", "common/GCAM_region_names",
-                     "emissions/A_MACC_TechChange_omit") ->
+                     "L152.MAC_pct_R_S_Proc_EPA", "L241.hfc_all", "L241.pfc_all", "common/GCAM_region_names","socioeconomics/income_shares",
+                     "emissions/A_MACC_TechChange_omit", "emissions/mappings/USAbld_emission_mapping") ->
       L252.MAC_higwp
 
     L252.MAC_higwp_phaseInTime %>%

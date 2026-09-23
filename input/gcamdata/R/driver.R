@@ -194,9 +194,7 @@ driver <- function(all_data = empty_data(),
 
   # we need to use package data to set this in effect in such a way that drake does not notice
   # and think all XML files need to be rebuilt with the suffix
-  if (!is.null(xml_suffix)){
-    xml.XML_SUFFIX <<- xml_suffix
-  }
+  options("gcamdata.xml.XML_SUFFIX" = xml_suffix)
   if(!is.null(user_modifications) && is.null(xml_suffix)) {
     warning("It is highly reccommended to utilize `xml_suffix` to distinguish XML inputs derived from `user_modifications`")
     }
@@ -513,9 +511,7 @@ driver_drake <- function(
 
   # we need to use package data to set this in effect in such a way that drake does not notice
   # and think all XML files need to be rebuilt with the suffix
-  if (!is.null(xml_suffix)){
-    xml.XML_SUFFIX <<- xml_suffix
-  }
+  options("gcamdata.xml.XML_SUFFIX" = xml_suffix)
   if(!is.null(user_modifications) && is.null(xml_suffix)) {
     warning("It is highly reccommended to utilize `xml_suffix` to distinguish XML inputs derived from `user_modifications`")
   }
@@ -636,7 +632,7 @@ driver_drake <- function(
                                    tibble(name = unfound_inputs$input,
                                           output = unfound_inputs$input,
                                           to_xml = FALSE)),
-                         chunkinputs, by=c("output" = "input")) %>%
+                         chunkinputs, by=c("output" = "input"), relationship = "many-to-many") %>%
        select(name.x, name.y) %>%
        unique()
 
@@ -646,6 +642,12 @@ driver_drake <- function(
     chunks_to_run <- c(unfound_inputs$input, chunklist$name)
    }
   dir.create(xmldir, showWarnings = FALSE, recursive = TRUE)
+
+  # fix "off by one" error where if we are doing a "stop_before" we should skip
+  # trying to actually run those chunks
+  if(!missing(stop_before)) {
+    chunks_to_run <- chunks_to_run[!(chunks_to_run %in% stop_before)]
+  }
 
   # Loop over each chunk and add a target for it and the command to build it
   # as appropriate for if it is just loading a FILE or running an actual chunk.

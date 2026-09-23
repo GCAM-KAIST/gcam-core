@@ -68,7 +68,6 @@ mAvailable( Value( 0.0 ) ),
 mAnnualProd( Value( 0.0 ) ),
 mCumulProd( Value( 0.0 ) ),
 mCumulativeTechChange( 1.0 ),
-mEffectivePrice( Value( -1.0 ) ),
 mCalProduction( -1.0 ),
 mTechnology( 0 )
 {
@@ -90,7 +89,7 @@ SubResource::~SubResource() {
 * \author Josh Lurz, Sonny Kim
 * \warning markets are not necessarily set when completeInit is called
 */
-void SubResource::completeInit( const std::string& aRegionName, const std::string& aResourceName,
+void SubResource::completeInit( const gcamstr& aRegionName, const gcamstr& aResourceName,
                                 const IInfo* aResourceInfo ) {
     mSubresourceInfo.reset( InfoFactory::constructInfo( aResourceInfo, mName ) ); 
     // update the available resource for period 0
@@ -168,7 +167,7 @@ void SubResource::completeInit( const std::string& aRegionName, const std::strin
 * \param aResourceName Resource name.
 * \param aPeriod Model aPeriod
 */
-void SubResource::initCalc( const string& aRegionName, const string& aResourceName,
+void SubResource::initCalc( const gcamstr& aRegionName, const gcamstr& aResourceName,
                             const IInfo* aResourceInfo, const int aPeriod )
 {
     // call grade initializations
@@ -183,26 +182,44 @@ void SubResource::initCalc( const string& aRegionName, const string& aResourceNa
     if( aPeriod == finalCalPeriod + 1 ) {
         SectorUtils::fillMissingPeriodVectorInterpolated( mPriceAdder );
     }
-
-    // If we are in a calibration period and a calibrated value was read in set the
-    // flag on the market that this resource is fully calibrated.
+     
     Marketplace* marketplace = scenario->getMarketplace();
     IInfo* productInfo = marketplace->getMarketInfo( aResourceName, aRegionName, aPeriod, false );
-    if( aPeriod <= finalCalPeriod && mCalProduction[ aPeriod ] > 0 && productInfo ) {
-        productInfo->setBoolean( "fully-calibrated", true );
+    
+    // If we are in a calibration period and a calibrated value was read in set the
+    // flag on the market that this resource is fully calibrated.
+    if( aPeriod <= finalCalPeriod && mCalProduction[ aPeriod ] >= 0.0 && productInfo ) {
+        productInfo->setBoolean( gcamstr("fully-calibrated"), true );
+    }
+    // Do some error checking wrt mixing calibrated and non-calibrated subresources.
+    // In particular, if the resource is calibrated (at least one subresource has calibration
+    // information) then any subresource which is not calibrating must have a zero share
+    // weight in the calibration periods.  We will issue a warning and reset it if not.
+    // WARNING: given we are checking "fully-calibrated" before other subresource objects set it
+    // to true we are open to missing some mismatches.  Unfortunately, it isn't so straightforward
+    // to ensure these order of operations (particularly in the case of a "global" market)
+    bool isCalibrated = productInfo->getBoolean( gcamstr("fully-calibrated"), false);
+    if(aPeriod <= finalCalPeriod && isCalibrated && mCalProduction[aPeriod] < 0.0 && mTechnology->getNewVintageTechnology(aPeriod)->getShareWeight() != 0.0) {
+        ILogger& mainLog = ILogger::getLogger( "main_log" );
+        mainLog.setLevel( ILogger::WARNING );
+        mainLog << "In " << aRegionName << " resource " << aResourceName
+                << " resetting share weight to zero for subresource " << mName << endl;
+        mTechnology->getNewVintageTechnology(aPeriod)->setShareWeight(0.0);
     }
     
+    
     // Note we have to reset the CO2coefficient for the resource to zero before
-    // the technology / output calls initCalc to avoid undesriable carbon accounting
+    // the technology / output calls initCalc to avoid undesirable carbon accounting
     // (positive carbon in the output but no inputs = negative emissions).
     // we will then reset the value to what it was before after the call
-    double resCCoef = productInfo ? productInfo->getDouble( "CO2coefficient", false ) : 0;
+    gcamstr CO2CoefKey("CO2coefficient");
+    double resCCoef = productInfo ? productInfo->getDouble( CO2CoefKey, false ) : 0;
     if( productInfo ) {
-        productInfo->setDouble( "CO2coefficient", 0.0 );
+        productInfo->setDouble( CO2CoefKey, 0.0 );
     }
     mTechnology->initCalc( aRegionName, aResourceName, aResourceInfo, 0, aPeriod );
     if( productInfo ) {
-        productInfo->setDouble( "CO2coefficient", resCCoef );
+        productInfo->setDouble( CO2CoefKey, resCCoef );
     }
     
     // calculate total extraction cost for each grade
@@ -227,7 +244,7 @@ void SubResource::initCalc( const string& aRegionName, const string& aResourceNa
 * \param aResourceName Resource name.
 * \param period Model aPeriod
 */
-void SubResource::postCalc( const string& aRegionName, const string& aResourceName, const int aPeriod ) {
+void SubResource::postCalc( const gcamstr& aRegionName, const gcamstr& aResourceName, const int aPeriod ) {
 
     // Available is the total resource (stock) initialized in initCalc and
     // is the initial amount at the beginning of the period.
@@ -250,7 +267,7 @@ void SubResource::postCalc( const string& aRegionName, const string& aResourceNa
     // (to accommodate global markets) but this can be problematic when target
     // in which case the amount depleted will vary between dispatches
     IInfo* marketInfo = scenario->getMarketplace()->getMarketInfo( aResourceName, aRegionName, aPeriod, true );
-    const string LOWER_BOUND_KEY = "lower-bound-supply-price";
+    const gcamstr LOWER_BOUND_KEY("lower-bound-supply-price");
     marketInfo->setDouble(LOWER_BOUND_KEY, util::getLargeNumber());
 }
 
@@ -264,7 +281,6 @@ void SubResource::toDebugXML( const int period, ostream& out, Tabs* tabs ) const
     XMLWriteElement( mCumulProd[ period ], "cumulprod", out, tabs );
     XMLWriteElement( mTechChange[ period ], "techChange", out, tabs );
     XMLWriteElement( mCalProduction[ period ], "cal-production", out, tabs );
-    XMLWriteElement( mEffectivePrice[ period ], "effective-price", out, tabs );
     XMLWriteElement( mPriceAdder[ period ], "price-adder", out, tabs );
 
     // write out the grade objects.
@@ -306,36 +322,36 @@ const std::string& SubResource::getXMLNameStatic() {
 }
 
 //! return SubResource name
-const std::string& SubResource::getName() const {
+const gcamstr& SubResource::getName() const {
     return mName;
 }
 
-void SubResource::cumulsupply( const string& aRegionName, const string& aResourceName,
+void SubResource::cumulsupply( const gcamstr& aRegionName, const gcamstr& aResourceName,
                                double aPrice, int aPeriod )
 {
     // Always calculate the effective price
     ITechnology* currTech = mTechnology->getNewVintageTechnology( aPeriod );
     currTech->calcCost( aRegionName, aResourceName, aPeriod );
-    mEffectivePrice[ aPeriod ] = aPrice + mPriceAdder[ aPeriod ] - currTech->getCost( aPeriod );
+    double lookupPrice = aPrice + mPriceAdder[ aPeriod ] - currTech->getCost( aPeriod );
     
     double prevCumul = aPeriod != 0 ? mCumulProd[ aPeriod - 1 ] : 0.0;
 
     // Case 1
     // if market price is less than cost of first grade, then zero cumulative
     // production
-    if ( mEffectivePrice[ aPeriod ] <= mGrade[0]->getCost( aPeriod )) {
+    if ( lookupPrice <= mGrade[0]->getCost( aPeriod ) || currTech->getShareWeight() == 0.0) {
         mCumulProd[ aPeriod ] = prevCumul;
     }
     
     // Case 2
     // if market price is in between cost of first and last grade, then calculate
     // cumulative production in between those grades
-    if ( mEffectivePrice[ aPeriod ] > mGrade[0]->getCost( aPeriod ) && mEffectivePrice[ aPeriod ] <= mGrade[ mGrade.size() - 1 ]->getCost( aPeriod )) {
+    else if ( lookupPrice > mGrade[0]->getCost( aPeriod ) && lookupPrice <= mGrade[ mGrade.size() - 1 ]->getCost( aPeriod )) {
         mCumulProd[ aPeriod ] = 0;
         int i = 0;
         int iL = 0;
         int iU = 0;
-        while ( mGrade[ i ]->getCost( aPeriod ) < mEffectivePrice[ aPeriod ] ) {
+        while ( mGrade[ i ]->getCost( aPeriod ) < lookupPrice ) {
             iL=i; i++; iU=i;
         }
         // add subrsrcs up to the lower grade
@@ -345,13 +361,13 @@ void SubResource::cumulsupply( const string& aRegionName, const string& aResourc
         // price must reach upper grade cost to produce all of lower grade
         double slope = mGrade[iL]->getAvail()
             / ( mGrade[iU]->getCost( aPeriod ) - mGrade[iL]->getCost( aPeriod ) );
-        mCumulProd[ aPeriod ] -= Value( slope * ( mGrade[iU]->getCost( aPeriod ) - mEffectivePrice[ aPeriod ] ) );
+        mCumulProd[ aPeriod ] -= Value( slope * ( mGrade[iU]->getCost( aPeriod ) - lookupPrice ) );
     }
     
     // Case 3
     // if market price greater than the cost of the last grade, then
     // cumulative production is the amount in all grades
-    if ( mEffectivePrice[ aPeriod ] > mGrade[ mGrade.size() - 1 ]->getCost( aPeriod ) ) {
+    else if ( lookupPrice > mGrade[ mGrade.size() - 1 ]->getCost( aPeriod ) ) {
         mCumulProd[ aPeriod ] = 0;
         for ( unsigned int i = 0; i < mGrade.size(); i++ ) {
             mCumulProd[ aPeriod ] += Value( mGrade[i]->getAvail() );
@@ -381,7 +397,7 @@ void SubResource::updateAvailable( const int aPeriod ){
 //! calculate annual supply
 /*! Takes into account short-term capacity limits.
 Note that cumulsupply() must be called before calling this function. */
-void SubResource::annualsupply( const string& aRegionName, const string& aResourceName,
+void SubResource::annualsupply( const gcamstr& aRegionName, const gcamstr& aResourceName,
                                 int aPeriod, double aPrice )
 {
     const Modeltime* modeltime = scenario->getModeltime();

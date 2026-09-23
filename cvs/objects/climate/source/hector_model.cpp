@@ -82,7 +82,8 @@ namespace {
     bool hector_log_is_init = false;
 } 
 
-HectorModel::HectorModel()
+HectorModel::HectorModel():
+mOfile("hector-output", "../output/gcam-hector-outputstream.csv")
 {
     // Set default values for config variables.  All of these can be
     // overridden in XML input.
@@ -182,52 +183,52 @@ void HectorModel::completeInit( const string& aScenarioName ) {
     mHectorEmissionsMsg["SF6"]           = D_EMISSIONS_SF6;
     mHectorEmissionsMsg["SO2tot"]        = D_EMISSIONS_SO2; 
 
-    // Emissions modeled by GCAM but not implemented in Hector v 3.1
+    // Emissions modeled by GCAM but not implemented in Hector v 3.2.0
     // H2, HFC152a, HFC236fa, HFC365mfc, HFC43, PM
     // Emissions for HFC152a, HFC236fa, HFC365mfc, HFC43 are
     // converted into HFC equivalents modeled by Hector.
 
-    // Emissions implemented in Hector v 3.1 but not in GCAM
+    // Emissions implemented in Hector v 3.2.0 but not in GCAM
     // CCl4, CFC11, CFC113, CFC114, CFC115, CFC12
     // CH3Br, CH3CCl3, CH3Cl, halon1211, halon1301, halon2402
     // HCFC141b, HCFC142b, HCFC22, HFC365, HFC4310
     // (default emissions will be used for this provided in
     // input/climate/default_emissions.csv)
     
-    // Additional forcings used in Hector v 3.1
+    // Additional forcings used in Hector v 3.2.0
     // Albedo, and Volcanic SO2 (SV)
     
     // Set up the message tables for components (mostly halocarbons)
     // that store their radiative forcing as a time series.
-    mHectorRFTseriesMsg["aci"]       = D_RF_ACI;
     mHectorRFTseriesMsg["Albedo"]    = D_RF_T_ALBEDO;
-    mHectorRFTseriesMsg["C2F6"]      = D_RF_C2F6;
-    mHectorRFTseriesMsg["CCl4"]      = D_RF_CCl4;
-    mHectorRFTseriesMsg["CF4"]       = D_RF_CF4;
-    mHectorRFTseriesMsg["CFC11"]     = D_RF_CFC11;
-    mHectorRFTseriesMsg["CFC113"]    = D_RF_CFC113;
-    mHectorRFTseriesMsg["CFC114"]    = D_RF_CFC114;
-    mHectorRFTseriesMsg["CFC115"]    = D_RF_CFC115;
-    mHectorRFTseriesMsg["CFC12"]     = D_RF_CFC12;
-    mHectorRFTseriesMsg["CH3Br"]     = D_RF_CH3Br;
-    mHectorRFTseriesMsg["CH3CCl3"]   = D_RF_CH3CCl3;
-    mHectorRFTseriesMsg["CH3Cl"]     = D_RF_CH3Cl;
-    mHectorRFTseriesMsg["halon1211"] = D_RF_halon1211;
-    mHectorRFTseriesMsg["halon1301"] = D_RF_halon1301;
-    mHectorRFTseriesMsg["halon2402"] = D_RF_halon2402;
-    mHectorRFTseriesMsg["HCF141b"]   = D_RF_HCFC141b;
-    mHectorRFTseriesMsg["HCF142b"]   = D_RF_HCFC142b;
-    mHectorRFTseriesMsg["HCF22"]     = D_RF_HCFC22;
-    mHectorRFTseriesMsg["HFC125"]    = D_RF_HFC125;
-    mHectorRFTseriesMsg["HFC134A"]   = D_RF_HFC134a;
-    mHectorRFTseriesMsg["HFC143A"]   = D_RF_HFC143a;
-    mHectorRFTseriesMsg["HFC227ea"]  = D_RF_HFC227ea;
-    mHectorRFTseriesMsg["HFC23"]     = D_RF_HFC23;
-    mHectorRFTseriesMsg["HFC245fa"]  = D_RF_HFC245fa;
-    mHectorRFTseriesMsg["HFC32"]     = D_RF_HFC32;
-    mHectorRFTseriesMsg["HFC4310"]   = D_RF_HFC4310;
-    mHectorRFTseriesMsg["SF6"]       = D_RF_SF6;
     mHectorRFTseriesMsg["vol"]       = D_RF_VOL;
+    mHectorRFTseriesMsg["C2F6"]      = D_RFADJ_C2F6;
+    mHectorRFTseriesMsg["CCl4"]      = D_RFADJ_CCl4;
+    mHectorRFTseriesMsg["CF4"]       = D_RFADJ_CF4;
+    mHectorRFTseriesMsg["CFC11"]     = D_RFADJ_CFC11;
+    mHectorRFTseriesMsg["CFC113"]    = D_RFADJ_CFC113;
+    mHectorRFTseriesMsg["CFC114"]    = D_RFADJ_CFC114;
+    mHectorRFTseriesMsg["CFC115"]    = D_RFADJ_CFC115;
+    mHectorRFTseriesMsg["CFC12"]     = D_RFADJ_CFC12;
+    mHectorRFTseriesMsg["CH3Br"]     = D_RFADJ_CH3Br;
+    mHectorRFTseriesMsg["CH3CCl3"]   = D_RFADJ_CH3CCl3;
+    mHectorRFTseriesMsg["CH3Cl"]     = D_RFADJ_CH3Cl;
+    mHectorRFTseriesMsg["halon1211"] = D_RFADJ_halon1211;
+    mHectorRFTseriesMsg["halon1301"] = D_RFADJ_halon1301;
+    mHectorRFTseriesMsg["halon2402"] = D_RFADJ_halon2402;
+    mHectorRFTseriesMsg["HCF141b"]   = D_RFADJ_HCFC141b;
+    mHectorRFTseriesMsg["HCF142b"]   = D_RFADJ_HCFC142b;
+    mHectorRFTseriesMsg["HCF22"]     = D_RFADJ_HCFC22;
+    mHectorRFTseriesMsg["HFC125"]    = D_RFADJ_HFC125;
+    mHectorRFTseriesMsg["HFC134A"]   = D_RFADJ_HFC134a;
+    mHectorRFTseriesMsg["HFC143A"]   = D_RFADJ_HFC143a;
+    mHectorRFTseriesMsg["HFC227ea"]  = D_RFADJ_HFC227ea;
+    mHectorRFTseriesMsg["HFC23"]     = D_RFADJ_HFC23;
+    mHectorRFTseriesMsg["HFC245fa"]  = D_RFADJ_HFC245fa;
+    mHectorRFTseriesMsg["HFC32"]     = D_RFADJ_HFC32;
+    mHectorRFTseriesMsg["HFC4310"]   = D_RFADJ_HFC4310;
+    mHectorRFTseriesMsg["SF6"]       = D_RFADJ_SF6;
+   
 
     
     // Set up the storage for GCAM emissions for each of the gasses we
@@ -316,8 +317,7 @@ void HectorModel::reset( const int aPeriod ) {
         mHcore->shutDown();
         mHcore.reset(0);
     }
-    if( !mOfile.get() ) {
-        mOfile.reset( new ofstream( "logs/gcam-hector-outputstream.csv" ) );
+    if( !mHosv.get() ) {
         mHosv.reset( new Hector::CSVOutputStreamVisitor( *mOfile, true ) );
     }
     else {
@@ -528,39 +528,6 @@ IClimateModel::runModelStatus HectorModel::runModel( const int aYear ) {
     return hadError ? EXCEPTION : SUCCESS;
 }
 
-/* \brief run the climate model through its configured end date 
- * \details This function is run at the end of a scenario run.  Since
- *          the model should have been run at each period while the
- *          scenario was running, we take this opportunity to extend
- *          the model run beyond the end of the GCAM scenario.  By
- *          default Hector will hold emissions constant (I think) past
- *          the time of the last emissions sent to the model.
- *          Alternatively, we could put in some reasonable
- *          extrapolations.  This capability is a bit of a work in
- *          progress.
- */
-IClimateModel::runModelStatus HectorModel::runModel() {
-    int year = mHcore->getEndDate();
-    // check if a stop year/period was set in which case we shouldn't try
-    // to run Hector past that year otherwise we are liable to get an exception
-    // wrt to emissions not set
-    int finalGCAMPeriod = util::getConfigRunPeriod( "stop" );
-    int finalGCAMYear = finalGCAMPeriod < 0 ? year : scenario->getModeltime()->getper_to_yr(finalGCAMPeriod);
-    ILogger& climatelog = ILogger::getLogger( "climate-log" );
-    climatelog.setLevel( ILogger::NOTICE );
-    if(finalGCAMYear < year) {
-        climatelog << "Reset final year as GCAM stop year is configured to " << finalGCAMYear <<endl;
-        year = finalGCAMYear;
-    }
-    IClimateModel::runModelStatus stat = runModel( year );
-    climatelog << "Final climate year: " << year << endl
-               << "\tCO2 conc= " << getConcentration( "CO2", year )
-               << "\tRFtot= " << getTotalForcing( year )
-               << "\tTemperature= " << getTemperature( year )
-               << endl;
-    return stat;
-}
-
 /* \brief return the atmospheric concentration for a gas 
  * \details Note that not all gasses have concentrations available.
  *
@@ -607,7 +574,8 @@ double HectorModel::getTemperature( const int aYear, const bool aAdjHistoricalPe
         // WARNING: this is set as a constant here but was derived from a particular
         // set of Hector assumptions.  And therefore should be sensitive to changing
         // Hector parameters.  Getting this value dynamically is issue JGCRI-469.
-        const double GMAT_ADJUST = -0.0411;
+        // Updated to Hector V3.2.0
+        const double GMAT_ADJUST = -0.0493;
         tempval -= GMAT_ADJUST;
     }
     return tempval;
@@ -631,7 +599,8 @@ double HectorModel::getGmst(const int aYear, const bool aAdjHistoricalPeriod ) c
         // WARNING: this is set as a constant here but was derived from a particular
         // set of Hector assumptions.  And therefore should be sensitive to changing
         // Hector parameters.  Getting this value dynamically is issue JGCRI-469.
-        const double GMSAT_ADJUST = -0.0338;
+        // Updated to Hector V3.2.0
+        const double GMSAT_ADJUST = -0.0406;
         tempval -= GMSAT_ADJUST;
     }
     return tempval;
@@ -716,7 +685,7 @@ void HectorModel::storeConc( const int aYear, const bool aHadError ) {
     // No need to check the index because we checked it in runModel
     int i = yearlyDataIndex( aYear );
 
-    // These are all of the atmospheric concentrations that Hector v3.1 provides.
+    // These are some of the atmospheric concentrations that Hector V3.2.0 provides.
     Hector::message_data date( aYear );
     mConcTable["CH4"][i]   = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_CH4_CONC,date );
     mConcTable["N2O"][i]   = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_N2O_CONC,date );
@@ -751,13 +720,15 @@ void HectorModel::storeRF(const int aYear, const bool aHadError ) {
     // total
     mTotRFTable[i]             = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_RF_TOTAL, currDate );
 
-    // misc gases requested by GCAM
+    // misc gases & aerosols requested by GCAM
     mGasRFTable["CO2"][i]      = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_RF_CO2, currDate );
     mGasRFTable["CH4"][i]      = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_RF_CH4, currDate );
     mGasRFTable["N2O"][i]      = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_RF_N2O, currDate );
     mGasRFTable["BC"][i]       = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_RF_BC, currDate );
     mGasRFTable["OC"][i]       = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_RF_OC, currDate );
     mGasRFTable["SO2"][i]      = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_RF_SO2, currDate );
+    mGasRFTable["NH3"][i]      = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_RF_NH3, currDate );
+    mGasRFTable["aci"][i]      = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_RF_ACI, currDate );
     mGasRFTable["StratH2O"][i] = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_RF_H2O_STRAT, currDate );
     mGasRFTable["TropO3"][i]   = aHadError ? numeric_limits<double>::quiet_NaN() : mHcore->sendMessage( M_GETDATA, D_RF_O3_TROP, currDate );
 
@@ -790,6 +761,8 @@ void HectorModel::setupRFTbl() {
     mGasRFTable["BC"].resize( size );
     mGasRFTable["OC"].resize( size );
     mGasRFTable["SO2"].resize( size );
+    mGasRFTable["NH3"].resize( size );
+    mGasRFTable["aci"].resize( size );
     mGasRFTable["StratH2O"].resize( size );
     mGasRFTable["TropO3"].resize( size );
 }

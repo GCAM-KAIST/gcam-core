@@ -62,7 +62,6 @@
 #include "marketplace/include/marketplace.h"
 #include "marketplace/include/market.h"
 #include "climate/include/iclimate_model.h"
-#include "climate/include/magicc_model.h"
 #include "resources/include/subresource.h"
 #include "resources/include/reserve_subresource.h"
 #include "resources/include/renewable_subresource.h"
@@ -78,7 +77,6 @@
 #include "land_allocator/include/land_use_history.h"
 #include "ccarbon_model/include/icarbon_calc.h"
 #include "ccarbon_model/include/land_carbon_densities.h"
-#include "util/base/include/atom.h"
 #include "land_allocator/include/land_node.h"
 #include "technologies/include/ioutput.h"
 #include "technologies/include/base_technology.h"
@@ -104,6 +102,7 @@
 #include "functions/include/building_service_input.h"
 #include "functions/include/satiation_demand_function.h"
 #include "functions/include/food_demand_input.h"
+#include "technologies/include/ag_storage_technology.h"
 #include "functions/include/nested_ces_production_function_macro.h"
 #include <typeinfo>
 
@@ -190,7 +189,8 @@ mSubsectorDepth( 0 )
 
 #if( __HAVE_JAVA__ )
     // Set Java as the sink of data for mBuffer.
-    SendToJavaIOSink sendToJavaSink( mJNIContainer.get() );
+    int bufferSize = Configuration::getInstance()->getInt("xmldb-buffer-size", 1);
+    SendToJavaIOSink sendToJavaSink( mJNIContainer.get(), bufferSize );
     mBuffer.push( sendToJavaSink );
 #else
     mBuffer.push( null_sink() );
@@ -308,6 +308,8 @@ unique_ptr<XMLDBOutputter::JNIContainer> XMLDBOutputter::createContainer( const 
         jniContainer.reset( 0 );
         return jniContainer;
     }
+    
+    int bufferSize = conf->getInt("xmldb-buffer-size", 1);
 
     // Start the Java VM with the following settings
     JavaVMInitArgs vmArgs;
@@ -360,7 +362,7 @@ unique_ptr<XMLDBOutputter::JNIContainer> XMLDBOutputter::createContainer( const 
     // "(Ljava/lang/String;Ljava/lang/String)V".  The arguments are the database, and
     // a unique name to call the document that we will put into the database.
     jmethodID writeDBCtorMID = jniContainer->mJavaEnv->GetMethodID( jniContainer->mWriteDBClass,
-        "<init>", "(Ljava/lang/String;Ljava/lang/String;)V" );
+        "<init>", "(Ljava/lang/String;Ljava/lang/String;I)V" );
     if( !writeDBCtorMID ) {
         ILogger& mainLog = ILogger::getLogger( "main_log" );
         mainLog.setLevel( ILogger::SEVERE );
@@ -389,10 +391,11 @@ unique_ptr<XMLDBOutputter::JNIContainer> XMLDBOutputter::createContainer( const 
     // Convert the C++ string to a Java String so that they can be passed to the constructor.
     jstring jXMLDBContainerName = jniContainer->mJavaEnv->NewStringUTF( xmldbContainerName.c_str() );
     jstring jDocName = jniContainer->mJavaEnv->NewStringUTF( docName.c_str() );
+    jint jBufferSize = bufferSize;
 
     // Call the constructor to get an instance of writeDBClassName.
     jniContainer->mWriteDBInstance = jniContainer->mJavaEnv->NewGlobalRef(
-        jniContainer->mJavaEnv->NewObject( jniContainer->mWriteDBClass, writeDBCtorMID, jXMLDBContainerName, jDocName ) );
+        jniContainer->mJavaEnv->NewObject( jniContainer->mWriteDBClass, writeDBCtorMID, jXMLDBContainerName, jDocName, jBufferSize ) );
     if( !jniContainer->mWriteDBInstance ) {
         ILogger& mainLog = ILogger::getLogger( "main_log" );
         mainLog.setLevel( ILogger::SEVERE );
@@ -483,6 +486,15 @@ void XMLDBOutputter::startVisitScenario( const Scenario* aScenario, const int aP
     mTabs->writeTabs( mBuffer );
     mBuffer << "<model-version>ver_" << __ObjECTS_VER__ << "_r" << __REVISION_NUMBER__
         << "</model-version>" << endl;
+    
+    // put the model years in the output as well which may be useful metadata
+    XMLWriteOpeningTag("modeltime", mBuffer, mTabs.get());
+    const Modeltime* modeltime = aScenario->getModeltime();
+    for(int per = 0; per < modeltime->getmaxper(); ++per) {
+        int year = modeltime->getper_to_yr(per);
+        XMLWriteElement(year, "model-year", mBuffer, mTabs.get());
+    }
+    XMLWriteClosingTag("modeltime", mBuffer, mTabs.get());
 }
 
 void XMLDBOutputter::endVisitScenario( const Scenario* aScenario, const int aPeriod ){
@@ -523,7 +535,7 @@ void XMLDBOutputter::endVisitRegionMiniCAM( const RegionMiniCAM* aRegionMiniCAM,
     assert( !mCurrentRegion.empty() );
 
     // Clear the region name.
-    mCurrentRegion.clear();
+    mCurrentRegion = "";
 
     // Write the closing region tag.
     XMLWriteClosingTag( aRegionMiniCAM->getXMLName(), mBuffer, mTabs.get() );
@@ -560,8 +572,8 @@ void XMLDBOutputter::endVisitResource( const AResource* aResource,
     // Write the closing resource tag.
     XMLWriteClosingTag( aResource->getXMLName(), mBuffer, mTabs.get() );
     // Clear the current resource.
-    mCurrentPriceUnit.clear();
-    mCurrentOutputUnit.clear();
+    mCurrentPriceUnit = "";
+    mCurrentOutputUnit = "";
 }
 
 void XMLDBOutputter::startVisitSubResource( const SubResource* aSubResource,
@@ -679,10 +691,10 @@ void XMLDBOutputter::endVisitSector( const Sector* aSector, const int aPeriod ){
     XMLWriteClosingTag( aSector->getXMLName(), mBuffer, mTabs.get() );
 
     // Clear the current sector.
-    mCurrentSector.clear();
-    mCurrentPriceUnit.clear();
-    mCurrentOutputUnit.clear();
-    mCurrentInputUnit.clear();
+    mCurrentSector = "";
+    mCurrentPriceUnit = "";
+    mCurrentOutputUnit = "";
+    mCurrentInputUnit = "";
 }
 
 void XMLDBOutputter::startVisitSubsector( const Subsector* aSubsector,
@@ -834,6 +846,29 @@ void XMLDBOutputter::startVisitTechnology( const Technology* aTechnology, const 
             }
         }
     }
+    const AgStorageTechnology* agStorageTech = dynamic_cast <const AgStorageTechnology*> (mCurrentTechnology);
+    if (agStorageTech) {
+        writeItemToBuffer(agStorageTech->mStoredValue, "closing-stock",
+            *childBuffer, mTabs.get(), 0, mCurrentOutputUnit);
+
+        const Modeltime* modeltime = scenario->getModeltime();
+        int techYear = agStorageTech->getYear(); 
+        int techPeriod = modeltime->getyr_to_per(techYear);
+        double openStock = techPeriod <= modeltime->getFinalCalibrationPeriod() ? 
+            agStorageTech->mOpeningStock : 
+            agStorageTech->mStoredValue * agStorageTech->mLossCoefficient;
+        
+        writeItemToBuffer(openStock, "opening-stock",
+            *childBuffer, mTabs.get(), 0, mCurrentOutputUnit);
+
+        writeItemToBuffer(agStorageTech->mStorageCost, "storage-cost",
+            *childBuffer, mTabs.get(), 0, mCurrentOutputUnit);
+
+        writeItemToBuffer(agStorageTech->mAdjExpectedPrice, "adj-exp-price",
+            *childBuffer, mTabs.get(), 0, mCurrentOutputUnit);
+
+
+    }
 }
 
 void XMLDBOutputter::endVisitTechnology( const Technology* aTechnology,
@@ -884,14 +919,6 @@ void XMLDBOutputter::startVisitMiniCAMInput( const MiniCAMInput* aInput, const i
     // we use startVisitInput to write out the generic input information, however
     // startVisitInput will never be called by an accept so we do it here
     startVisitInput( aInput, aPeriod );
-        
-    // We want to write the keywords last due to limitations in 
-    // XPath we could be searching for them using following-sibling
-    // note that mBufferStack.top() is the child buffer for input
-    if( !aInput->mKeywordMap.empty() && mBufferStack.top()->rdbuf()->in_avail()/*->str().empty()*/ ) {
-        XMLWriteElementWithAttributes( "", "keyword", *mBufferStack.top(), mTabs.get(), 
-            aInput->mKeywordMap );
-    }
 }
 void XMLDBOutputter::endVisitMiniCAMInput( const MiniCAMInput* aInput, const int aPeriod ) {
     // call the endVisitInput explicitly becuase it is never called by an accept method.
@@ -989,7 +1016,7 @@ void XMLDBOutputter::startVisitInput( const IInput* aInput, const int aPeriod ) 
         double currValue = trackInput->mCapitalValue;
         if(currValue > 0) {
             attrs.clear();
-            attrs["unit"] = "1975$";
+            attrs["unit"] = "billion 1975$ per timestep";
             XMLWriteElementWithAttributes( currValue, "capital", *childBuffer, mTabs.get(), attrs);
         }
     }
@@ -998,7 +1025,7 @@ void XMLDBOutputter::startVisitInput( const IInput* aInput, const int aPeriod ) 
         double currValue = capInput->mCapitalValue;
         if(currValue > 0) {
             attrs.clear();
-            attrs["unit"] = "1975$";
+            attrs["unit"] = "billion 1975$ per timestep";
             XMLWriteElementWithAttributes( currValue, "capital", *childBuffer, mTabs.get(), attrs);
         }
     }
@@ -1171,7 +1198,7 @@ void XMLDBOutputter::startVisitGHG( const AGHG* aGHG, const int aPeriod ){
         }
 
         // Write indirect emissions if this is CO2.
-        if( aGHG->getName() == "CO2" && !util::isEqual( mCurrIndirectEmissions[ i ], 0.0 ) ){
+        if( aGHG->getName() == gcamstr("CO2") && !util::isEqual( mCurrIndirectEmissions[ i ], 0.0 ) ){
             writeItemToBuffer( mCurrIndirectEmissions[ i ], "indirect-emissions", *childBuffer, 
                 mTabs.get(), i, aGHG->mEmissionsUnit );
         }
@@ -1211,9 +1238,9 @@ void XMLDBOutputter::endVisitMarketplace( const Marketplace* aMarketplace,
 {
     // Write the closing marketplace tag.
     XMLWriteClosingTag( Marketplace::getXMLNameStatic(), mBuffer, mTabs.get() );
-    mCurrentMarket.clear();
-    mCurrentPriceUnit.clear();
-    mCurrentOutputUnit.clear();
+    mCurrentMarket = "";
+    mCurrentPriceUnit = "";
+    mCurrentOutputUnit = "";
 
 }
 
@@ -1228,11 +1255,10 @@ void XMLDBOutputter::startVisitMarket( const Market* aMarket,
     XMLWriteElement( aMarket->getRegionName(), "MarketRegion", mBuffer, mTabs.get() );
 
     // if next market clear out units to be updated
-    if( mCurrentMarket != aMarket->getName() ){
-        mCurrentMarket.clear();
+    if( mCurrentMarket != aMarket->getName() ){;
         mCurrentMarket = aMarket->getName();
-        mCurrentPriceUnit.clear();
-        mCurrentOutputUnit.clear();
+        mCurrentPriceUnit = "";
+        mCurrentOutputUnit = "";
     }
     // Store unit information from base period
     if( aMarket->getYear() == scenario->getModeltime()->getStartYear() ) {
@@ -1248,10 +1274,10 @@ void XMLDBOutputter::startVisitMarket( const Market* aMarket,
     writeItem( "demand", mCurrentOutputUnit, aMarket->getRawDemand(), -1 );
     writeItem( "supply", mCurrentOutputUnit, aMarket->getRawSupply(), -1 );
 
-    for( vector<const objects::Atom*>::const_iterator i = aMarket->getContainedRegions().begin();
+    for( vector<gcamstr>::const_iterator i = aMarket->getContainedRegions().begin();
         i != aMarket->getContainedRegions().end(); i++ )
     {
-        XMLWriteElement( (*i)->getID(), "ContainedRegion", mBuffer, mTabs.get() );
+        XMLWriteElement( (*i).get(), "ContainedRegion", mBuffer, mTabs.get() );
     }
 }
 
@@ -1272,16 +1298,12 @@ void XMLDBOutputter::startVisitClimateModel( const IClimateModel* aClimateModel,
     assert( aPeriod == -1 );
     // Write the opening tag.
     XMLWriteOpeningTag( "climate-model", mBuffer, mTabs.get() );
-    int outputInterval
-        = Configuration::getInstance()->getInt( "climateOutputInterval",
-                                   scenario->getModeltime()->gettimestep( 0 ) );
-
-    // print at least to 2100 if interval is set appropriately
-    int endingYear = max( scenario->getModeltime()->getEndYear(), 2100 );
+    
+    const Modeltime* modeltime = scenario->getModeltime();
 
     // Write the concentrations for the request period.
-    for( int year = scenario->getModeltime()->getStartYear();
-         year <= endingYear; year += outputInterval )
+    for( int year = modeltime->getStartYear();
+         year <= modeltime->getEndYear(); year++ )
     {
          writeItemUsingYear( "CO2-concentration", "PPM",
                              aClimateModel->getConcentration( "CO2", year ),
@@ -1319,8 +1341,8 @@ void XMLDBOutputter::startVisitClimateModel( const IClimateModel* aClimateModel,
     }
 
     // Write total radiative forcing
-    for( int year = scenario->getModeltime()->getStartYear();
-         year <= endingYear; year += outputInterval )
+    for( int year = modeltime->getStartYear();
+         year <= modeltime->getEndYear(); year++ )
     {
         // Kyoto Forcing
         writeItemUsingYear( "forcing-Kyoto", "W/m^2",
@@ -1332,10 +1354,12 @@ void XMLDBOutputter::startVisitClimateModel( const IClimateModel* aClimateModel,
         + aClimateModel->getForcing( "HFC143A", util::round( year ) )
         + aClimateModel->getForcing( "HFC227ea", util::round( year ) )
         + aClimateModel->getForcing( "HFC245fa", util::round( year ) )
+        + aClimateModel->getForcing( "HFC23", util::round( year ) )
+        + aClimateModel->getForcing( "HFC4310", util::round( year ) )
+        + aClimateModel->getForcing( "HFC32", util::round( year ) )
         + aClimateModel->getForcing( "SF6", util::round( year ) )
         + aClimateModel->getForcing( "CF4", util::round( year ) )
-        + aClimateModel->getForcing( "C2F6", util::round( year ) )
-        + aClimateModel->getForcing( "OtherHC", util::round( year ) ),
+        + aClimateModel->getForcing( "C2F6", util::round( year ) ),
                              year );
 
         // HFCs Forcing
@@ -1346,21 +1370,38 @@ void XMLDBOutputter::startVisitClimateModel( const IClimateModel* aClimateModel,
         + aClimateModel->getForcing( "HFC227ea", util::round( year ) )
         + aClimateModel->getForcing( "HFC245fa", util::round( year ) )
         + aClimateModel->getForcing( "HFC23", util::round( year ) )
+        + aClimateModel->getForcing( "HFC4310", util::round( year ) )
         + aClimateModel->getForcing( "HFC32", util::round( year ) ),
                              year );
 
-                // Long-lived Forcing
+        // Total halocarbon Forcing
         writeItemUsingYear( "forcing-halocarbons", "W/m^2",
-        aClimateModel->getForcing( "HFC125", util::round( year ) )
+                           aClimateModel->getForcing( "C2F6", util::round( year ) )
+        + aClimateModel->getForcing( "CCl4", util::round( year ) )
+        + aClimateModel->getForcing( "CF4", util::round( year ) )
+        + aClimateModel->getForcing( "CFC11", util::round( year ) )
+        + aClimateModel->getForcing( "CFC113", util::round( year ) )
+        + aClimateModel->getForcing( "CFC114", util::round( year ) )
+        + aClimateModel->getForcing( "CFC115", util::round( year ) )
+        + aClimateModel->getForcing( "CFC12", util::round( year ) )
+        + aClimateModel->getForcing( "CH3Br", util::round( year ) )
+        + aClimateModel->getForcing( "CH3CCl3", util::round( year ) )
+        + aClimateModel->getForcing( "CH3Cl", util::round( year ) )
+        + aClimateModel->getForcing( "halon1211", util::round( year ) )
+        + aClimateModel->getForcing( "halon1301", util::round( year ) )
+        + aClimateModel->getForcing( "halon2402", util::round( year ) )
+        + aClimateModel->getForcing( "HCF141b", util::round( year ) )
+        + aClimateModel->getForcing( "HCF142b", util::round( year ) )
+        + aClimateModel->getForcing( "HCF22", util::round( year ) )
+        + aClimateModel->getForcing( "HFC125", util::round( year ) )
         + aClimateModel->getForcing( "HFC134A", util::round( year ) )
         + aClimateModel->getForcing( "HFC143A", util::round( year ) )
         + aClimateModel->getForcing( "HFC227ea", util::round( year ) )
+        + aClimateModel->getForcing( "HFC23", util::round( year ) )
         + aClimateModel->getForcing( "HFC245fa", util::round( year ) )
-        + aClimateModel->getForcing( "SF6", util::round( year ) )
-        + aClimateModel->getForcing( "CF4", util::round( year ) )
-        + aClimateModel->getForcing( "C2F6", util::round( year ) )
-        + aClimateModel->getForcing( "OtherHC", util::round( year ) )
-        + aClimateModel->getForcing( "Montreal", util::round( year ) ),
+        + aClimateModel->getForcing( "HFC32", util::round( year ) )
+        + aClimateModel->getForcing( "HFC4310", util::round( year ) )
+        + aClimateModel->getForcing( "SF6", util::round( year ) ),
                              year );
         
         // PFCs Forcing
@@ -1389,10 +1430,16 @@ void XMLDBOutputter::startVisitClimateModel( const IClimateModel* aClimateModel,
                            aClimateModel->getForcing( "SO2", util::round( year ) ),
                            year );
         
-        // DirSO2 Forcing
-        writeItemUsingYear( "forcing-DirSO2", "W/m^2",
-                           aClimateModel->getForcing( "DirSO2", util::round( year ) ),
+        // NH3 Forcing
+        writeItemUsingYear( "forcing-NH3", "W/m^2",
+                           aClimateModel->getForcing( "NH3", util::round( year ) ),
                            year );
+        
+        // aci Forcing
+        writeItemUsingYear( "forcing-aci", "W/m^2",
+                           aClimateModel->getForcing( "aci", util::round( year ) ),
+                           year );
+        
         
         // TropO3 Forcing
         writeItemUsingYear( "forcing-TropO3", "W/m^2",
@@ -1469,23 +1516,40 @@ void XMLDBOutputter::startVisitClimateModel( const IClimateModel* aClimateModel,
         
         // Montreal gas Forcing
         writeItemUsingYear( "forcing-Montreal", "W/m^2",
-                           aClimateModel->getForcing( "Montreal", util::round( year ) ),
+                           aClimateModel->getForcing( "HFC125", util::round( year ) )
+        + aClimateModel->getForcing( "HFC134A", util::round( year ) )
+        + aClimateModel->getForcing( "HFC143A", util::round( year ) )
+        + aClimateModel->getForcing( "HFC227ea", util::round( year ) )
+        + aClimateModel->getForcing( "HFC245fa", util::round( year ) )
+        + aClimateModel->getForcing( "HFC23", util::round( year ) )
+        + aClimateModel->getForcing( "HFC4310", util::round( year ) )
+        + aClimateModel->getForcing( "HFC32", util::round( year ) )
+        + aClimateModel->getForcing( "CFC11", util::round( year ) )
+        + aClimateModel->getForcing( "CFC113", util::round( year ) )
+        + aClimateModel->getForcing( "CFC114", util::round( year ) )
+        + aClimateModel->getForcing( "CFC115", util::round( year ) )
+        + aClimateModel->getForcing( "CFC12", util::round( year ) )
+        + aClimateModel->getForcing( "HCF141b", util::round( year ) )
+        + aClimateModel->getForcing( "HCF142b", util::round( year ) )
+        + aClimateModel->getForcing( "HCF22", util::round( year ) )
+        + aClimateModel->getForcing( "CCl4", util::round( year ) )
+        + aClimateModel->getForcing( "CH3CCl3", util::round( year ) )
+        + aClimateModel->getForcing( "CH3Br", util::round( year ) )
+        + aClimateModel->getForcing( "halon1211", util::round( year ) )
+        + aClimateModel->getForcing( "halon1301", util::round( year ) )
+        + aClimateModel->getForcing( "halon2402", util::round( year ) ),
                            year );
         
         // Total Forcing
         writeItemUsingYear( "forcing-total", "W/m^2",
                             aClimateModel->getTotalForcing( year ),
                              year );
-        
-        // RCP Forcing
-        writeItemUsingYear( "forcing-RCP", "W/m^2",
-                           aClimateModel->getForcing( "RCP", year ),
-                           year );
+ 
      }
 
     // Write net terrestrial uptake
-    for( int year = scenario->getModeltime()->getStartYear();
-         year <= endingYear; year += outputInterval )
+    for( int year = modeltime->getStartYear();
+         year <= modeltime->getEndYear(); year++ )
     {
         writeItemUsingYear( "net-terrestrial-uptake", "GtC",
                              aClimateModel->getNetTerrestrialUptake( year ),
@@ -1493,8 +1557,8 @@ void XMLDBOutputter::startVisitClimateModel( const IClimateModel* aClimateModel,
     }
 
     // Write net ocean uptake
-    for( int year = scenario->getModeltime()->getStartYear();
-         year <= endingYear; year += outputInterval )
+    for( int year = modeltime->getStartYear();
+         year <= modeltime->getEndYear(); year++ )
     {
         writeItemUsingYear( "net-ocean-uptake", "GtC",
                              aClimateModel->getNetOceanUptake( year ),
@@ -1502,8 +1566,8 @@ void XMLDBOutputter::startVisitClimateModel( const IClimateModel* aClimateModel,
     }
 
     // Global-mean air temperature
-    for( int year = scenario->getModeltime()->getStartYear();
-         year <= endingYear; year += outputInterval )
+    for( int year = modeltime->getStartYear();
+         year <= modeltime->getEndYear(); year++ )
     {
         writeItemUsingYear( "global-mean-air-temperature-native", "degreesC",
                              aClimateModel->getTemperature( year, false ),
@@ -1511,8 +1575,8 @@ void XMLDBOutputter::startVisitClimateModel( const IClimateModel* aClimateModel,
     }
     
     // Global-mean surface temperature
-    for( int year = scenario->getModeltime()->getStartYear();
-         year <= endingYear; year += outputInterval )
+    for( int year = modeltime->getStartYear();
+         year <= modeltime->getEndYear(); year++ )
     {
         writeItemUsingYear( "global-mean-surface-temperature-native", "degreesC",
                              aClimateModel->getGmst( year, false ),
@@ -1520,8 +1584,8 @@ void XMLDBOutputter::startVisitClimateModel( const IClimateModel* aClimateModel,
     }
     
     // Global-mean air temperature relative to 1850-1900 mean
-    for( int year = scenario->getModeltime()->getStartYear();
-         year <= endingYear; year += outputInterval )
+    for( int year = modeltime->getStartYear();
+         year <= modeltime->getEndYear(); year++ )
     {
         writeItemUsingYear( "global-mean-air-temperature", "degreesC",
                              aClimateModel->getTemperature( year, true ),
@@ -1529,8 +1593,8 @@ void XMLDBOutputter::startVisitClimateModel( const IClimateModel* aClimateModel,
     }
     
     // Global-mean surface temperature relative to 1850-1900 mean
-    for( int year = scenario->getModeltime()->getStartYear();
-         year <= endingYear; year += outputInterval )
+    for( int year = modeltime->getStartYear();
+         year <= modeltime->getEndYear(); year++ )
     {
         writeItemUsingYear( "global-mean-surface-temperature", "degreesC",
                              aClimateModel->getGmst( year, true ),
@@ -1670,11 +1734,10 @@ void XMLDBOutputter::startVisitCarbonCalc( const ICarbonCalc* aCarbonCalc, const
     // Printing yearly values would be too much data.
     const Modeltime* modeltime = scenario->getModeltime();
     const int startingYear = max( Configuration::getInstance()->getInt( "carbon-output-start-year", 1990 ), CarbonModelUtils::getStartYear() );
-    int outputInterval = Configuration::getInstance()->getInt( "climateOutputInterval",modeltime->gettimestep( 0 ) );
     
     for( int aYear = startingYear; 
              aYear <= modeltime->getper_to_yr( modeltime->getmaxper() - 1 ) || aYear == modeltime->getper_to_yr( modeltime->getmaxper() - 1 ); 
-             aYear += outputInterval ){
+             aYear++ ){
         writeItemUsingYear( "land-use-change-emission", "MtC/yr", aCarbonCalc->getNetLandUseChangeEmission( aYear ), aYear );
         writeItemUsingYear( "above-land-use-change-emission", "MtC/yr", aCarbonCalc->getNetLandUseChangeEmissionAbove( aYear ), aYear );
         writeItemUsingYear( "below-land-use-change-emission", "MtC/yr", aCarbonCalc->getNetLandUseChangeEmissionBelow( aYear ), aYear );
@@ -1692,7 +1755,7 @@ void XMLDBOutputter::startVisitCarbonCalc( const ICarbonCalc* aCarbonCalc, const
     }
     for( int aYear = modeltime->getStartYear();
              aYear <= modeltime->getper_to_yr( modeltime->getmaxper() - 1 ) || aYear == modeltime->getper_to_yr( modeltime->getmaxper() - 1 );
-             aYear += outputInterval ){
+             aYear++ ){
         writeItemUsingYear( "above-ground-carbon-stock", "MtC", aCarbonCalc->getAboveGroundCarbonStock( aYear ), aYear );
 
     }
@@ -1757,28 +1820,28 @@ void XMLDBOutputter::startVisitNationalAccount( const NationalAccount* aNational
     attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::GDP);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
     
-    currValue = aNationalAccount->getAccountValue( NationalAccount::CAPITAL_ENERGY_INV);
-    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::CAPITAL_ENERGY_INV);
+    currValue = aNationalAccount->getAccountValue( NationalAccount::MATERIALS_CAPITAL_INV);
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::MATERIALS_CAPITAL_INV);
+    XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
+    
+    currValue = aNationalAccount->getAccountValue( NationalAccount::ENERGY_INVESTMENT);
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::ENERGY_INVESTMENT);
+    XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
+    
+    currValue = aNationalAccount->getAccountValue( NationalAccount::AG_INVESTMENT);
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::AG_INVESTMENT);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
     
     currValue = aNationalAccount->getAccountValue( NationalAccount::CONSUMER_DURABLE_INV);
     attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::CONSUMER_DURABLE_INV);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
 
-    currValue = aNationalAccount->getAccountValue( NationalAccount::GDP_PER_CAPITA );
-    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::GDP_PER_CAPITA);
+    currValue = aNationalAccount->getAccountValue( NationalAccount::MATERIALS_VALUE_ADDED );
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::MATERIALS_VALUE_ADDED);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
     
-    currValue = aNationalAccount->getAccountValue( NationalAccount::GDP_PER_CAPITA_PPP );
-    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::GDP_PER_CAPITA_PPP);
-    XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
-
-    currValue = aNationalAccount->getAccountValue( NationalAccount::VALUE_ADDED );
-    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::VALUE_ADDED);
-    XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
-    
-    currValue = aNationalAccount->getAccountValue( NationalAccount::GROSS_OUTPUT );
-    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::GROSS_OUTPUT);
+    currValue = aNationalAccount->getAccountValue( NationalAccount::MATERIALS_GROSS_OUTPUT );
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::MATERIALS_GROSS_OUTPUT);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
     
     currValue = aNationalAccount->getAccountValue( NationalAccount::SAVINGS );
@@ -1789,8 +1852,8 @@ void XMLDBOutputter::startVisitNationalAccount( const NationalAccount* aNational
     attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::INVESTMENT);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
 
-    currValue = aNationalAccount->getAccountValue( NationalAccount::CAPITAL_STOCK );
-    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::CAPITAL_STOCK);
+    currValue = aNationalAccount->getAccountValue( NationalAccount::MATERIALS_CAPITAL_STOCK );
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::MATERIALS_CAPITAL_STOCK);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
 
     currValue = aNationalAccount->getAccountValue( NationalAccount::DEPRECIATION );
@@ -1800,9 +1863,17 @@ void XMLDBOutputter::startVisitNationalAccount( const NationalAccount* aNational
     currValue = aNationalAccount->getAccountValue( NationalAccount::ENERGY_SERVICE_VALUE );
     attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::ENERGY_SERVICE_VALUE);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
+    
+    currValue = aNationalAccount->getAccountValue( NationalAccount::AG_NONFOOD_SERVICE_VALUE );
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::AG_NONFOOD_SERVICE_VALUE);
+    XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
+    
+    currValue = aNationalAccount->getAccountValue( NationalAccount::AG_FOOD_SERVICE_VALUE );
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::AG_FOOD_SERVICE_VALUE);
+    XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
 
-    currValue = aNationalAccount->getAccountValue( NationalAccount::ENERGY_NET_EXPORT);
-    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::ENERGY_NET_EXPORT);
+    currValue = aNationalAccount->getAccountValue( NationalAccount::GCAM_NET_EXPORT);
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::GCAM_NET_EXPORT);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
     
     currValue = aNationalAccount->getAccountValue( NationalAccount::MATERIALS_NET_EXPORT);
@@ -1814,16 +1885,27 @@ void XMLDBOutputter::startVisitNationalAccount( const NationalAccount* aNational
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
     
     // value of labor from the materials function in
-    currValue = aNationalAccount->getAccountValue( NationalAccount::LABOR_WAGES );
-    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::LABOR_WAGES);
+    currValue = aNationalAccount->getAccountValue( NationalAccount::MATERIALS_LABOR_WAGES );
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::MATERIALS_LABOR_WAGES);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
     
-    attrs[ "unit" ] = "mil pers";
+    // per cap values have different units
+    attrs[ "unit" ] = "thous 1990$ percap";
+    currValue = aNationalAccount->getAccountValue( NationalAccount::GDP_PER_CAPITA );
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::GDP_PER_CAPITA);
+    XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
+    
+    currValue = aNationalAccount->getAccountValue( NationalAccount::GDP_PER_CAPITA_PPP );
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::GDP_PER_CAPITA_PPP);
+    XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
+
+    attrs[ "unit" ] = "million pers";
     // labor force in persons
-    currValue = aNationalAccount->getAccountValue( NationalAccount::LABOR_FORCE );
-    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::LABOR_FORCE);
+    currValue = aNationalAccount->getAccountValue( NationalAccount::MATERIALS_LABOR_FORCE );
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::MATERIALS_LABOR_FORCE);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
     // total population
+    attrs[ "unit" ] = "thous pers";
     currValue = aNationalAccount->getAccountValue( NationalAccount::POPULATION );
     attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::POPULATION);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
@@ -1847,66 +1929,28 @@ void XMLDBOutputter::startVisitNationalAccount( const NationalAccount* aNational
     currValue = aNationalAccount->getAccountValue( NationalAccount::FR_SHARE_ENERGY );
     attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::FR_SHARE_ENERGY);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
+    
+    currValue = aNationalAccount->getAccountValue( NationalAccount::FR_SHARE_AG );
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::FR_SHARE_AG);
+    XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
 
     // energy service output and value
     attrs[ "unit" ] = "million 1990$";
     currValue = aNationalAccount->getAccountValue( NationalAccount::ENERGY_SERVICE );
     attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::ENERGY_SERVICE);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
+    currValue = aNationalAccount->getAccountValue( NationalAccount::AG_NONFOOD_SERVICE );
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::AG_NONFOOD_SERVICE);
+    XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
 
     currValue = aNationalAccount->getAccountValue( NationalAccount::TOTAL_FACTOR_PRODUCTIVITY );
     attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::TOTAL_FACTOR_PRODUCTIVITY);
     XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
     
-    enum SAM_COL_ENUM { cEnergy, cMaterials, cHHGov, cCapMat, cCapEne, cRow, cSum};
-    enum SAM_ROW_ENUM { rEnergy, rMaterials, rHHGov, rCap, rRow, rSum, rDiff};
-    const string colNames[] = { "Energy", "Materials", "HH+Gov", "Capital-Materials", "Capital-Energy", "ROW", "Sum" };
-    const string rowNames[] = { "Energy", "Materials", "HH+Gov", "Capital", "ROW", "Sum", "Diff"};
-    double samData[7][7];
-    for(int row = 0; row < 7; ++row) {
-        for(int col = 0; col < 7; ++col) {
-            samData[row][col] = 0.0;
-        }
-    }
-    samData[rEnergy][cMaterials] = aNationalAccount->getAccountValue( NationalAccount::ENERGY_SERVICE_VALUE );;
-    samData[rEnergy][cRow] = aNationalAccount->getAccountValue( NationalAccount::ENERGY_NET_EXPORT );
-    samData[rEnergy][cSum] = samData[rEnergy][cMaterials] + samData[rEnergy][cRow];
-    samData[rMaterials][cHHGov] = aNationalAccount->getAccountValue( NationalAccount::VALUE_ADDED ) +
-        samData[rEnergy][cSum] -
-        aNationalAccount->getAccountValue( NationalAccount::SAVINGS );
-    samData[rMaterials][cCapMat] = aNationalAccount->getAccountValue( NationalAccount::INVESTMENT ) -
-        aNationalAccount->getAccountValue( NationalAccount::CAPITAL_ENERGY_INV ) -
-        aNationalAccount->getAccountValue( NationalAccount::CONSUMER_DURABLE_INV );
-    samData[rMaterials][cCapEne] = aNationalAccount->getAccountValue( NationalAccount::CAPITAL_ENERGY_INV ) +
-        aNationalAccount->getAccountValue( NationalAccount::CONSUMER_DURABLE_INV );
-    samData[rMaterials][cRow] = aNationalAccount->getAccountValue( NationalAccount::MATERIALS_NET_EXPORT );
-    samData[rMaterials][cSum] = samData[rMaterials][cHHGov] + samData[rMaterials][cCapMat] + samData[rMaterials][cCapEne] + samData[rMaterials][cRow];
-    samData[rHHGov][cEnergy] = samData[rEnergy][cSum];
-    samData[rHHGov][cMaterials] = aNationalAccount->getAccountValue( NationalAccount::VALUE_ADDED );
-    samData[rHHGov][cSum] = samData[rHHGov][cEnergy] + samData[rHHGov][cMaterials];
-    samData[rCap][cHHGov] = aNationalAccount->getAccountValue( NationalAccount::SAVINGS );
-    samData[rCap][cRow] = aNationalAccount->getAccountValue( NationalAccount::CAPITAL_NET_EXPORT );
-    samData[rCap][cSum] = samData[rCap][cHHGov] + samData[rCap][cRow];
-    samData[rSum][cEnergy] = samData[rHHGov][cEnergy];
-    samData[rSum][cMaterials] = samData[rEnergy][cMaterials] + samData[rHHGov][cMaterials];
-    samData[rSum][cHHGov] = samData[rMaterials][cHHGov] + samData[rCap][cHHGov];
-    samData[rSum][cCapMat] = samData[rMaterials][cCapMat] + samData[rMaterials][cCapEne];
-    samData[rSum][cRow] = samData[rEnergy][cRow] + samData[rMaterials][cRow] + samData[rCap][cRow];
-    samData[rDiff][cEnergy] = samData[rEnergy][cSum] - samData[rSum][cEnergy];
-    samData[rDiff][cMaterials] = samData[rMaterials][cSum] - samData[rSum][cMaterials];
-    samData[rDiff][cHHGov] = samData[rHHGov][cSum] - samData[rSum][cHHGov];
-    samData[rDiff][cCapMat] = samData[rCap][cSum] - samData[rSum][cCapMat];
-    samData[rDiff][cRow] = samData[rRow][cSum] - samData[rSum][cRow];
-    attrs[ "unit" ] = "million 1990$";
-    
-    for(int row = 0; row < 7; ++row) {
-        XMLWriteOpeningTag("social-accounting-matrix-row", mBuffer, mTabs.get(), rowNames[row]);
-        for(int col = 0; col < 7; ++col) {
-            attrs["name"] = colNames[col];
-            XMLWriteElementWithAttributes( samData[row][col], "social-accounting-matrix-col", mBuffer, mTabs.get(), attrs );
-        }
-        XMLWriteClosingTag("social-accounting-matrix-row", mBuffer, mTabs.get());
-    }
+    attrs[ "unit" ] = "1990$/1990$";
+    currValue = aNationalAccount->getAccountValue( NationalAccount::CAPITAL_PRICE );
+    attrs[ "name" ] = aNationalAccount->enumToXMLName(NationalAccount::CAPITAL_PRICE);
+    XMLWriteElementWithAttributes( currValue, "account", mBuffer, mTabs.get(), attrs );
 }
 
 void XMLDBOutputter::endVisitNationalAccount( const NationalAccount* aNationalAccount, const int aPeriod ) {
@@ -1939,11 +1983,17 @@ void XMLDBOutputter::startVisitBuildingNodeInput(const BuildingNodeInput* aBuild
     mBufferStack.push(childBuffer);
 
     if (aBuildingNodeInput->getSatiationDemandFunction() ) {
-        writeItemToBuffer(aBuildingNodeInput->getSatiationDemandFunction()->mSatiationImpedance,
+        writeItemToBuffer(aBuildingNodeInput->getSatiationDemandFunction()->mParsedSatiationImpedance,
             "satiation-impedance", *childBuffer, mTabs.get(), 1, "unitless");
-        writeItemToBuffer(aBuildingNodeInput->getSatiationDemandFunction()->mSatiationLevel,
-            "satiation-level", *childBuffer, mTabs.get(), 1, "GJ/m^2");
+        writeItemToBuffer(aBuildingNodeInput->getSatiationDemandFunction()->mParsedSatiationLevel,
+            "satiation-level", *childBuffer, mTabs.get(), 1, "m^2/pers");
+    }  else  {
+
+    writeItemToBuffer(aBuildingNodeInput->mBiasAdjustParam,
+        "bias-adder", *childBuffer, mTabs.get(), 1, "m^2/pers");
+
     }
+
     const Modeltime* modeltime = scenario->getModeltime();
     for( int per = 0; per < modeltime->getmaxper(); ++per ) {
         double price = aBuildingNodeInput->getPricePaid( mCurrentRegion, per );
@@ -1956,6 +2006,8 @@ void XMLDBOutputter::startVisitBuildingNodeInput(const BuildingNodeInput* aBuild
             writeItemToBuffer( floorspace, "floorspace",
                 *childBuffer, mTabs.get(), per, "billion m^2" );
         }
+
+
     }
 }
 
@@ -1983,16 +2035,25 @@ void XMLDBOutputter::endVisitBuildingNodeInput( const BuildingNodeInput* aBuildi
 void XMLDBOutputter::startVisitBuildingServiceInput( const BuildingServiceInput* aBuildingServiceInput, const int aPeriod ) {
     startVisitInput( aBuildingServiceInput, aPeriod );
 
-    writeItemToBuffer( aBuildingServiceInput->getSatiationDemandFunction()->mSatiationImpedance,
+    if (aBuildingServiceInput->getSatiationDemandFunction()) {
+    writeItemToBuffer( aBuildingServiceInput->getSatiationDemandFunction()->mParsedSatiationImpedance,
                        "satiation-impedance", *mBufferStack.top(), mTabs.get(), 1, "unitless" );
-    writeItemToBuffer( aBuildingServiceInput->getSatiationDemandFunction()->mSatiationLevel,
+    writeItemToBuffer( aBuildingServiceInput->getSatiationDemandFunction()->mParsedSatiationLevel,
                        "satiation-level", *mBufferStack.top(), mTabs.get(), 1, "GJ/m^2" );
+    }
+
     const Modeltime* modeltime = scenario->getModeltime();
     for( int per = 0; per < modeltime->getmaxper(); ++per ) {
         double serviceDensity = aBuildingServiceInput->mServiceDensity[ per ];
         if( !objects::isEqual<double>( serviceDensity, 0.0 ) ) {
             writeItemToBuffer( serviceDensity, "service-density",
                 *mBufferStack.top(), mTabs.get(), per, "GJ/m^2" );
+        }
+
+        double BiasAdderEn = aBuildingServiceInput->getBiasAdder( per );
+        if (!objects::isEqual<double>(BiasAdderEn, 0.0)) {
+            writeItemToBuffer(BiasAdderEn, "bias-adder",
+                *mBufferStack.top(), mTabs.get(), per, "GJ/m^2");
         }
     }
 }
@@ -2006,8 +2067,8 @@ void XMLDBOutputter::startVisitFoodDemandInput( const FoodDemandInput* aFoodDema
     mCurrentPriceUnit = "2005$/Mcal/day";
     mCurrentInputUnit = "Pcal/yr";
     startVisitInput( aFoodDemandInput, aPeriod );
-    mCurrentPriceUnit.clear();
-    mCurrentInputUnit.clear();
+    mCurrentPriceUnit = "";
+    mCurrentInputUnit = "";
 
     const Modeltime* modeltime = scenario->getModeltime();
     for( int per = 0; per < modeltime->getmaxper(); ++per ) {
@@ -2174,15 +2235,16 @@ map<string, string> XMLDBOutputter::decomposeLandName( string aLandName ) {
  *          error checking and set the error flag as appropriate.
  * \param aJNIContainer A weak pointer to the container which holds the Java VM
  *                      references.  May be null if it did not initialize properly.
+ * \param aBufferSize The configured buffer size which should be used consistently in C++ and Java.
  */
-XMLDBOutputter::SendToJavaIOSink::SendToJavaIOSink( const JNIContainer* aJNIContainer )
+XMLDBOutputter::SendToJavaIOSink::SendToJavaIOSink( const JNIContainer* aJNIContainer, const int aBufferSize )
 :mJNIContainer( aJNIContainer ),
 // Get the receiveDataFromGCAM method from the write DB class with arguments of a byte
 // array "[B", an integer "I", and a return type of bool "Z" 
 mReceiveDataMID( aJNIContainer ? aJNIContainer->mJavaEnv->GetMethodID( aJNIContainer->mWriteDBClass, "receiveDataFromGCAM", "([BI)Z") : 0 ),
 // The same buffer size as the one used in Java, if we try to tune this we should
 // adjust it both here and in Java.
-BUFFER_SIZE( 1024 * 1024 ),
+BUFFER_SIZE( aBufferSize * 1024 * 1024 ),
 mJNIBuffer( aJNIContainer ? aJNIContainer->mJavaEnv->NewByteArray( BUFFER_SIZE  ) : 0 ),
 // If any of the required JNI data structures were not properly set then set the error flag.
 mErrorFlag( !mJNIContainer || !mReceiveDataMID || !mJNIBuffer )

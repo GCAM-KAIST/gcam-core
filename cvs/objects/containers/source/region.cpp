@@ -117,7 +117,7 @@ void Region::clear(){
 /*! Return the region name.
 * \return The string name of the region is returned.
 */
-const string& Region::getName() const {
+const gcamstr& Region::getName() const {
     return mName;
 }
 
@@ -181,11 +181,11 @@ const std::string& Region::getXMLNameStatic() {
  * \author Pralit Patel
  */
 void Region::completeInit() {    
-    for( GHGPolicyIterator ghgPolicy = mGhgPolicies.begin(); ghgPolicy != mGhgPolicies.end(); ++ghgPolicy ){
-        (*ghgPolicy)->completeInit( mName );
-    }
     for( ResourceIterator resourceIter = mResources.begin(); resourceIter != mResources.end(); ++resourceIter ) {
         (*resourceIter)->completeInit( mName, mRegionInfo );
+    }
+    for( GHGPolicyIterator ghgPolicy = mGhgPolicies.begin(); ghgPolicy != mGhgPolicies.end(); ++ghgPolicy ){
+        (*ghgPolicy)->completeInit( mName );
     }
 }
 
@@ -329,7 +329,7 @@ const Curve* Region::getEmissionsPriceCurve( const string& ghgName ) const {
     unique_ptr<ExplicitPointSet> emissionsPoints( new ExplicitPointSet() );
 
     for( int i = 0; i < modeltime->getmaxper(); i++ ) {
-        XYDataPoint* currPoint = new XYDataPoint( modeltime->getper_to_yr( i ), marketplace->getPrice( ghgName, mName, i ) );
+        XYDataPoint* currPoint = new XYDataPoint( modeltime->getper_to_yr( i ), marketplace->getPrice( gcamstr(ghgName), mName, i ) );
         emissionsPoints->addPoint( currPoint );
     }
 

@@ -46,9 +46,9 @@ module_gcamusa_L2722.nonghg_elc_linear_control <- function(command, ...) {
 
     # Filter NEI data for fuel = coal, and pollutants = NOx or SO2
     NEI_emissions <- L270.nonghg_tg_state_elec_F_Yb %>%
-      filter( fuel == "coal",
+      filter(fuel == "coal",
               Non.CO2 == "NOx" | Non.CO2 == "SO2") %>%
-      rename( input.emissions = value )
+      rename(input.emissions = value)
 
     # Filter the EIA data for electricity inputs and coal
     # SEDS (EIA) indicates electricity generation technologies either in terms of fuel inputs or fuel outputs (not both)
@@ -57,57 +57,50 @@ module_gcamusa_L2722.nonghg_elc_linear_control <- function(command, ...) {
     # Note: EIA has coal from electricity consumption as 0 for a few states, while GCAM has all non-zero
     # We will apply the median emissions factor to these cases
     EIA_electricity_consumption <- L101.inEIA_EJ_state_S_F_all_years %>%
-      filter( sector == "electricity_input",
-             fuel == "coal" ) %>%
-      select( -c( sector, fuel ) ) %>%
-      rename( electricity.consumption = value )
+      filter(sector == "electricity_input",
+             fuel == "coal") %>%
+      select(-c(sector, fuel)) %>%
+      rename(electricity.consumption = value)
 
     # Join the table containing NEI emissions from coal - electricity
     # With the table containing EIA consumption of coal - electricity
     elec_emiss_coeffs.NA <- EIA_electricity_consumption %>%
-      filter( year == max( MODEL_BASE_YEARS ) | year == max( year ) ) %>%
-      left_join( NEI_emissions, by = c( "state", "year") ) %>%
+      filter(year == MODEL_FINAL_BASE_YEAR | year == max(year) | year == max(NEI_emissions$year)) %>%
+      left_join(NEI_emissions, by = c("state", "year")) %>%
       # calculate the emissions factor by dividing emissions by consumption
-      mutate( observed.emission.factor = input.emissions / electricity.consumption ) %>%
-      select( -c( input.emissions, electricity.consumption ) )
+      mutate(emiss.coef = input.emissions / electricity.consumption) %>%
+      select(-c(input.emissions, electricity.consumption))
     # this results in some states having NAs or Inf due to having no input emissions (NA), or 0 input emissions (Inf)
     # In these cases, we apply the average emissions factor for that year and pollutant
 
-    # Generate national median emissions factors
-    # Remove NAs so as to not skew the median
-    # Some states (VT, DC, RI, and ID), are not assigned median EFs because they have no electricity consumption from coal.
-    # Some states (ME), are not assigned median EFs because they have no electric generation emissions from coal,
+    ## Replace outlier EFs with the national median
     # Previously, we were assigning medians to these states.
-    elec_emiss_coeffs.median <- elec_emiss_coeffs.NA %>%
-      filter(!is.na(observed.emission.factor)) %>%
-      group_by(year, Non.CO2) %>%
-      summarise(observed.emission.factor = median(observed.emission.factor)) %>%
-      ungroup() %>%
-      rename(nationalEF = observed.emission.factor)
+    elec_emiss_coeffs.check_outlier <- elec_emiss_coeffs.NA %>%
+      # Some states (VT, DC, RI, and ID), are not assigned median EFs because they have no electricity consumption from coal.
+      # Some states (ME), are not assigned median EFs because they have no electric generation emissions from coal.
+      # In these cases, the sector will be NA and should be removed
+      filter(!is.na(sector))
 
-    # Replace all emissions factors above a given value (currently 1000) or that are NAs with the national median emissions factor for that year, non.CO2, and technology
-    elec_emiss_coeffs <- elec_emiss_coeffs.NA %>%
-      # remove NAs so LJENM works
-      # These NAs are the states mentioned above
-      filter(!is.na(observed.emission.factor)) %>%
-      left_join_error_no_match(elec_emiss_coeffs.median, by = c("year", "Non.CO2")) %>%
-      mutate(observed.emission.factor = if_else(observed.emission.factor > emissions.HIGH_EM_FACTOR_THRESHOLD | is.na(observed.emission.factor), nationalEF, observed.emission.factor)) %>%
-      select(state, year, sector, fuel, Non.CO2, observed.emission.factor) %>%
-      mutate(observed.emission.factor = if_else(is.infinite(observed.emission.factor), 1, observed.emission.factor)) %>%
-      rename(final.emissions.coefficient = observed.emission.factor)
+    # list columns to group by (emission factor medians will based on this grouping)
+    to_group <- c( "year", "Non.CO2", "sector", "fuel" )
+    # list columns to keep in final table
+    names <- c( "state", "Non.CO2", "year", "sector", "fuel", "emiss.coef")
+    # Name of column containing emission factors
+    ef_col_name <- "emiss.coef"
+    elec_emiss_coeffs <- replace_outlier_EFs(elec_emiss_coeffs.check_outlier, to_group, names, ef_col_name)
 
     # Assign emission coefficients to the electricity technologies
     # The linear control will not apply to IGCC or CCS technologies
     # It will apply to all other technologies and states where there is non-zero energy consumption in the base year
       # first, make a table with states, supplysectors, subsectors, and technologies with energy consumption in the max model base year
     technology_table <- L2233.StubTechProd_elecS_cool_USA %>%
-      filter( subsector0 == "coal",
-              year == max( MODEL_BASE_YEARS ),
+      filter(subsector0 == "coal",
+              year == MODEL_FINAL_BASE_YEAR,
               calOutputValue > 0,
-              !grepl( 'IGCC|CCS', subsector ),
-              !grepl( 'peak|subpeak', supplysector ) ) %>%
-      select( -c( calOutputValue, share.weight.year, subs.share.weight, tech.share.weight ) ) %>%
-      distinct( region, supplysector, subsector0, subsector, technology, year )
+              !grepl('IGCC|CCS', subsector),
+              !grepl('peak|subpeak', supplysector)) %>%
+      select(-c(calOutputValue, share.weight.year, subs.share.weight, tech.share.weight)) %>%
+      distinct(region, supplysector, subsector0, subsector, technology, year)
 
 
   # Assign the emission factors to the technologies
@@ -118,32 +111,33 @@ module_gcamusa_L2722.nonghg_elc_linear_control <- function(command, ...) {
       # Can't use left_join_error_no_match because the technology table includes all states
       left_join(elec_emiss_coeffs, by = c("region" = "state", "subsector0" = "fuel", "Non.CO2")) %>%
       # Set end year for the linear control
-      rename( end.year = year.y ) %>%
+      rename(end.year = year.y,
+             final.emissions.coefficient = emiss.coef) %>%
       select(region, supplysector, subsector0, subsector, technology, Non.CO2, end.year, final.emissions.coefficient) %>%
       # remove NAs (from ME, mentioned above)
-      filter( !is.na( end.year ) )
+      filter(!is.na(end.year))
 
     # Breaking into separate pollutant dataframes for additional processing
     # Adding a start year, linear control name, and period/year
     nonghg_elec_tech_coeff_NOx_USA <- nonghg_elec_tech_coeff_USA %>%
-      filter( end.year == max( end.year ),
+      filter(end.year == max(end.year),
               Non.CO2 == "NOx") %>%
-      mutate( start.year = max( MODEL_BASE_YEARS ),
+      mutate(start.year = MODEL_FINAL_BASE_YEAR,
               linear.control = "NOx_control",
-              year = max( MODEL_BASE_YEARS ) )
+              year = MODEL_FINAL_BASE_YEAR)
 
     nonghg_elec_tech_coeff_SO2_USA <- nonghg_elec_tech_coeff_USA %>%
-      filter( end.year == max( end.year ),
+      filter(end.year == max(end.year),
               Non.CO2 == "SO2") %>%
-      mutate( start.year = max( MODEL_BASE_YEARS ),
+      mutate(start.year = MODEL_FINAL_BASE_YEAR,
               linear.control = "SO2_control",
-              year = max( MODEL_BASE_YEARS ) )
+              year = MODEL_FINAL_BASE_YEAR)
 
     # Bind them all back together
     L2722.nonghg_elec_tech_coeff_USA_linear_control <- bind_rows(nonghg_elec_tech_coeff_NOx_USA,
                                                           nonghg_elec_tech_coeff_SO2_USA) %>%
     #change SO2 to SO2_1
-    mutate( Non.CO2 = gsub( "SO2", "SO2_1", Non.CO2 ) )
+    mutate(Non.CO2 = gsub("SO2", "SO2_1", Non.CO2))
 
     # Define a utility function that returns the next model year.
     # Because we vectorize the function, the argument can be a vector (or column) of years
@@ -168,6 +162,16 @@ module_gcamusa_L2722.nonghg_elc_linear_control <- function(command, ...) {
              end.year = tail(MODEL_FUTURE_YEARS, n=1),
              disable.em.control = 1) %>%
       select(-c(year, final.emissions.coefficient)) -> L2722.nonghg_elec_tech_coeff_USA_linear_control_off
+
+
+    # double check if we have any linear control with a end year after the start year
+    # this can occur with shifting base years where were attempting to control some
+    # emissions which are now historical
+    # in this case the change in emissions factor would have already been calibrated
+    # so we can safely just filter out the controls in this case
+    L2722.nonghg_elec_tech_coeff_USA_linear_control %>%
+      filter(end.year > start.year) ->
+      L2722.nonghg_elec_tech_coeff_USA_linear_control
 
     # Produce outputs
     L2722.nonghg_elec_tech_coeff_USA_linear_control %>%

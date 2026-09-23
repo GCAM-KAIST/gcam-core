@@ -19,13 +19,7 @@
 #' \code{L232.StubTechProd_industry}, \code{L232.StubTechCoef_industry},
 #' \code{L232.FuelPrefElast_indenergy}, \code{L232.PerCapitaBased_ind},
 #' \code{L232.PriceElasticity_ind}, \code{L232.BaseService_ind},
-#' \code{L232.IncomeElasticity_ind_gcam3}, \code{L232.IncomeElasticity_ind_gssp1},
-#' \code{L232.IncomeElasticity_ind_gssp2}, \code{L232.IncomeElasticity_ind_gssp3},
-#' \code{L232.IncomeElasticity_ind_gssp4}, \code{L232.IncomeElasticity_ind_gssp5},
-#' \code{L232.IncomeElasticity_ind_ssp1}, \code{L232.IncomeElasticity_ind_ssp2},
-#' \code{L232.IncomeElasticity_ind_ssp3}, \code{L232.IncomeElasticity_ind_ssp4},
-#' \code{L232.IncomeElasticity_ind_ssp5}, \code{object}. The corresponding file in the
-#' original data system was \code{L232.industry.R} (energy level2).
+#' \code{L232.IncomeElasticity_ind_Scen}
 #' @details The chunk provides final energy keyword, supplysector/subsector information, supplysector/subsector interpolation information, supplysector/subsector share weights, global technology share weight, global technology efficiency, global technology coefficients, global technology cost, price elasticity, stub technology information, stub technology interpolation information, stub technology calibrated inputs, and etc.
 #' @importFrom assertthat assert_that
 #' @importFrom dplyr anti_join arrange bind_rows distinct filter if_else group_by lag left_join mutate right_join select summarise
@@ -33,92 +27,67 @@
 #' @author LF October 2017
 module_energy_L232.other_industry <- function(command, ...) {
 
-  INCOME_ELASTICITY_OUTPUTS <- c("GCAM3",
-                                 paste0("gSSP", 1:5),
-                                 paste0("SSP", 1:5))
+  MODULE_INPUTS <-
+    c(FILE = "common/GCAM_region_names",
+      FILE = "energy/calibrated_techs",
+      FILE = "energy/A_regions",
+      FILE = "energy/A23.chp_elecratio",
+      FILE = "energy/A32.sector",
+      FILE = "energy/A32.subsector_interp",
+      FILE = "energy/A32.subsector_logit",
+      FILE = "energy/A32.subsector_shrwt",
+      FILE = "energy/A32.globaltech_coef",
+      FILE = "energy/A32.globaltech_cost",
+      FILE = "energy/A32.globaltech_eff",
+      FILE = "energy/A32.globaltech_shrwt",
+      FILE = "energy/A32.globaltech_interp",
+      FILE = "energy/A32.nonenergy_Cseq",
+      FILE = "energy/A32.fuelprefElasticity",
+      FILE = "energy/A32.globaltech_retirement",
+      FILE = "energy/A32.demand",
+      "L127.in_EJ_R_indchp_F_Yh",
+      "L1328.in_EJ_R_indenergy_F_Yh",
+      "L1324.in_EJ_R_indfeed_F_Yh")
+
+  MODULE_OUTPUTS <-
+    c("L232.Supplysector_ind",
+      "L232.SubsectorLogit_ind",
+      "L232.FinalEnergyKeyword_ind",
+      "L232.SubsectorShrwtFllt_ind",
+      "L232.SubsectorInterp_ind",
+      "L232.StubTech_ind",
+      "L232.GlobalTechShrwt_ind",
+      "L232.StubTechInterp_ind",
+      "L232.GlobalTechEff_ind",
+      "L232.GlobalTechCoef_ind",
+      "L232.GlobalTechCost_ind",
+      "L232.GlobalTechTrackCapital_ind",
+      "L232.GlobalTechSecOut_ind",
+      "L232.GlobalTechCSeq_ind",
+      "L232.StubTechCalInput_indenergy",
+      "L232.StubTechCalInput_indfeed",
+      "L232.StubTechProd_industry",
+      "L232.StubTechCoef_industry",
+      "L232.GlobalTechShutdown_en",
+      "L232.GlobalTechSCurve_en",
+      "L232.GlobalTechLifetime_en",
+      "L232.GlobalTechProfitShutdown_en",
+      "L232.FuelPrefElast_indenergy",
+      "L232.PerCapitaBased_ind",
+      "L232.PriceElasticity_ind",
+      "L232.BaseService_ind")
 
   if(command == driver.DECLARE_INPUTS) {
-    return(c(FILE = "common/GCAM_region_names",
-             FILE = "energy/calibrated_techs",
-             FILE = "energy/A_regions",
-             FILE = "energy/A23.chp_elecratio",
-             FILE = "energy/A32.sector",
-             FILE = "energy/A32.subsector_interp",
-             FILE = "energy/A32.subsector_logit",
-             FILE = "energy/A32.subsector_shrwt",
-             FILE = "energy/A32.globaltech_coef",
-             FILE = "energy/A32.globaltech_cost",
-             FILE = "energy/A32.globaltech_eff",
-             FILE = "energy/A32.globaltech_shrwt",
-             FILE = "energy/A32.globaltech_interp",
-             FILE = "energy/A32.nonenergy_Cseq",
-             FILE = "energy/A32.fuelprefElasticity",
-             FILE = "energy/A32.globaltech_retirement",
-             FILE = "energy/A32.demand",
-             "L123.in_EJ_R_indchp_F_Yh",
-             "L1326.in_EJ_R_indenergy_F_Yh",
-             "L1324.in_EJ_R_indfeed_F_Yh",
-             FILE = "socioeconomics/A32.inc_elas_output",
-             "L101.Pop_thous_GCAM3_R_Y",
-             "L102.pcgdp_thous90USD_GCAM3_R_Y",
-             "L102.pcgdp_thous90USD_Scen_R_Y"))
+    return(MODULE_INPUTS)
   } else if(command == driver.DECLARE_OUTPUTS) {
-    return(c("L232.Supplysector_ind",
-             "L232.SubsectorLogit_ind",
-             "L232.FinalEnergyKeyword_ind",
-             "L232.SubsectorShrwtFllt_ind",
-             "L232.SubsectorInterp_ind",
-             "L232.StubTech_ind",
-             "L232.GlobalTechShrwt_ind",
-             "L232.StubTechInterp_ind",
-             "L232.GlobalTechEff_ind",
-             "L232.GlobalTechCoef_ind",
-             "L232.GlobalTechCost_ind",
-             "L232.GlobalTechTrackCapital_ind",
-             "L232.GlobalTechSecOut_ind",
-             "L232.GlobalTechCSeq_ind",
-             "L232.StubTechCalInput_indenergy",
-             "L232.StubTechCalInput_indfeed",
-             "L232.StubTechProd_industry",
-             "L232.StubTechCoef_industry",
-             "L232.GlobalTechShutdown_en",
-             "L232.GlobalTechSCurve_en",
-             "L232.GlobalTechLifetime_en",
-             "L232.GlobalTechProfitShutdown_en",
-             "L232.FuelPrefElast_indenergy",
-             "L232.PerCapitaBased_ind",
-             "L232.PriceElasticity_ind",
-             "L232.BaseService_ind",
-             paste("L232.IncomeElasticity_ind", tolower(INCOME_ELASTICITY_OUTPUTS), sep = "_")))
+    return(MODULE_OUTPUTS)
   } else if(command == driver.MAKE) {
 
     all_data <- list(...)[[1]]
 
-    # Load required inputs
-    GCAM_region_names <- get_data(all_data, "common/GCAM_region_names")
-    calibrated_techs <- get_data(all_data, "energy/calibrated_techs", strip_attributes = TRUE)
-    A_regions <- get_data(all_data, "energy/A_regions")
-    A23.chp_elecratio <- get_data(all_data, "energy/A23.chp_elecratio")
-    A32.sector <- get_data(all_data, "energy/A32.sector", strip_attributes = TRUE)
-    A32.subsector_interp <- get_data(all_data, "energy/A32.subsector_interp", strip_attributes = TRUE)
-    A32.subsector_logit <- get_data(all_data, "energy/A32.subsector_logit", strip_attributes = TRUE)
-    A32.subsector_shrwt <- get_data(all_data, "energy/A32.subsector_shrwt", strip_attributes = TRUE)
-    A32.globaltech_coef <- get_data(all_data, "energy/A32.globaltech_coef", strip_attributes = TRUE)
-    A32.globaltech_cost <- get_data(all_data, "energy/A32.globaltech_cost")
-    A32.globaltech_eff <- get_data(all_data, "energy/A32.globaltech_eff")
-    A32.globaltech_shrwt <- get_data(all_data, "energy/A32.globaltech_shrwt", strip_attributes = TRUE)
-    A32.globaltech_interp <- get_data(all_data, "energy/A32.globaltech_interp", strip_attributes = TRUE)
-    A32.globaltech_retirement <- get_data(all_data, "energy/A32.globaltech_retirement", strip_attributes = TRUE)
-    A32.nonenergy_Cseq <- get_data(all_data, "energy/A32.nonenergy_Cseq", strip_attributes = TRUE)
-    A32.fuelprefElasticity <- get_data(all_data, "energy/A32.fuelprefElasticity")
-    A32.demand <- get_data(all_data, "energy/A32.demand")
-    L123.in_EJ_R_indchp_F_Yh <- get_data(all_data, "L123.in_EJ_R_indchp_F_Yh")
-    L1324.in_EJ_R_indenergy_F_Yh <- get_data(all_data, "L1326.in_EJ_R_indenergy_F_Yh")
-    L1324.in_EJ_R_indfeed_F_Yh <- get_data(all_data, "L1324.in_EJ_R_indfeed_F_Yh", strip_attributes = TRUE)
-    A32.inc_elas_output <- get_data(all_data, "socioeconomics/A32.inc_elas_output")
-    L101.Pop_thous_GCAM3_R_Y <- get_data(all_data, "L101.Pop_thous_GCAM3_R_Y")
-    L102.pcgdp_thous90USD_GCAM3_R_Y <- get_data(all_data, "L102.pcgdp_thous90USD_GCAM3_R_Y")
-    L102.pcgdp_thous90USD_Scen_R_Y <- get_data(all_data, "L102.pcgdp_thous90USD_Scen_R_Y")
+    # Load required inputs ----
+    get_data_list(all_data, MODULE_INPUTS, strip_attributes = TRUE)
+
 
     # ===================================================
     # 0. Give binding for variable names used in pipeline
@@ -131,12 +100,7 @@ module_energy_L232.other_industry <- function(command, ...) {
       calOutputValue <- subs.share.weight <- calOutputValue.x <- calOutputValue.y <-
       output_tot <- value.x <- value.y <- total <- fuelprefElasticity <-
       terminal_coef <- criteria <- scenario <- temp_lag <- base.service <- energy.final.demand <-
-      parameter <- income.elasticity <- L232.IncomeElasticity_ind_gcam3 <-
-      L232.IncomeElasticity_ind_gssp1 <- L232.IncomeElasticity_ind_gssp2 <-
-      L232.IncomeElasticity_ind_gssp3 <- L232.IncomeElasticity_ind_gssp4 <-
-      L232.IncomeElasticity_ind_gssp5 <- L232.IncomeElasticity_ind_ssp1 <-
-      L232.IncomeElasticity_ind_ssp2 <- L232.IncomeElasticity_ind_ssp3 <-
-      L232.IncomeElasticity_ind_ssp4 <- L232.IncomeElasticity_ind_ssp5 <-
+      parameter <- income.elasticity <- L232.IncomeElasticity_ind_Scen <-
       market.name <- stub.technology <- year.y <- NULL
 
     # ===================================================
@@ -237,7 +201,7 @@ module_energy_L232.other_industry <- function(command, ...) {
     # L232.GlobalTechCoef_ind: Energy inputs and coefficients of global industry technologies
     A32.globaltech_coef %>%
       rename(coefficient = "terminal_coef") %>%
-      repeat_add_columns(tibble(year = c(year, MODEL_BASE_YEARS, MODEL_FUTURE_YEARS))) %>%
+      repeat_add_columns(tibble(year = c(MODEL_BASE_YEARS, MODEL_FUTURE_YEARS))) %>%
       rename(sector.name = supplysector,
              subsector.name = subsector) %>% # Assign the columns "sector.name" and "subsector.name", consistent with the location info of a global technology
       select(LEVEL2_DATA_NAMES[["GlobalTechCoef"]]) ->
@@ -259,7 +223,7 @@ module_energy_L232.other_industry <- function(command, ...) {
       mutate(output.ratio = elec_ratio / efficiency,
              output.ratio = round(output.ratio, energy.DIGITS_EFFICIENCY)) %>%
       # NOTE: holding the output ratio constant over time in future periods
-      left_join_error_no_match(select(filter(., year == max(MODEL_BASE_YEARS)), -efficiency, -elec_ratio),
+      left_join_error_no_match(select(filter(., year == MODEL_FINAL_BASE_YEAR), -efficiency, -elec_ratio),
                                by = c("supplysector", "subsector", "technology", "minicam.energy.input", "secondary.output")) %>%
       mutate(output.ratio = if_else(year.x %in% MODEL_BASE_YEARS, output.ratio.x, output.ratio.y)) %>%
       ungroup %>%
@@ -285,12 +249,13 @@ module_energy_L232.other_industry <- function(command, ...) {
       select(LEVEL2_DATA_NAMES[["GlobalTechCost"]]) ->
       L232.GlobalTechCost_ind
 
-    FCR <- (socioeconomics.DEFAULT_INTEREST_RATE * (1+socioeconomics.DEFAULT_INTEREST_RATE)^socioeconomics.INDUSTRY_CAP_PAYMENTS) /
-      ((1+socioeconomics.DEFAULT_INTEREST_RATE)^socioeconomics.INDUSTRY_CAP_PAYMENTS -1)
     L232.GlobalTechCost_ind %>%
       # we only want to track investments in energy, otherwise we double accounting with materials
       filter(grepl('energy use', sector.name)) %>%
-      mutate(capital.coef = socioeconomics.INDUSTRY_CAPITAL_RATIO / FCR,
+      mutate(capital.ratio = socioeconomics.INDUSTRY_CAPITAL_RATIO,
+             interest.rate = socioeconomics.DEFAULT_INTEREST_RATE,
+             payback.years = socioeconomics.INDUSTRY_CAP_PAYMENTS,
+             invest.unit.conversion = 1,
              tracking.market = socioeconomics.EN_CAPITAL_MARKET_NAME,
              # vintaging is active so no need for depreciation
              depreciation.rate = 0) %>%
@@ -309,8 +274,8 @@ module_energy_L232.other_industry <- function(command, ...) {
 
     # Calibration and region-specific data
     # L232.StubTechCalInput_indenergy: calibrated input of industrial energy use technologies (including cogen)
-    L1324.in_EJ_R_indenergy_F_Yh %>%
-      bind_rows(L123.in_EJ_R_indchp_F_Yh) %>%
+    L1328.in_EJ_R_indenergy_F_Yh %>%
+      bind_rows(L127.in_EJ_R_indchp_F_Yh) %>%
       complete(nesting(GCAM_region_ID, sector, fuel), year = c(year, MODEL_BASE_YEARS)) %>%
       arrange(GCAM_region_ID, sector, fuel, year) %>%
       group_by(GCAM_region_ID, sector, fuel) %>%
@@ -420,6 +385,39 @@ module_energy_L232.other_industry <- function(command, ...) {
       filter(year %in% MODEL_YEARS) ->   # drop the terminal coef year if it's outside of the model years
       L232.StubTechCoef_industry
 
+
+    # Under timeshift, some subsectors will have zero output in the final calibration year,
+    # but required demand in the future periods (due to a positive coefficient).
+    # Remove the shareweight interpolation rules for those subsectors.
+    if ( UNDER_TIMESHIFT ) {
+      # L232.SubsectorInterp_ind
+      # First, identify subsectors that need to have production in future years
+      L232.StubTechCoef_industry %>%
+        filter(year == min(MODEL_FUTURE_YEARS),
+               coefficient > 0) %>%
+        select(region, minicam.energy.input) %>%
+        distinct() ->
+        PosCoefInputs
+
+      # Next, identify subsectors that have 0 calOutputValue in the final calibration year
+      # AND positive coefficients
+      L232.StubTechCalInput_indfeed %>%
+        filter(year == MODEL_FINAL_BASE_YEAR) %>%
+        group_by(region, supplysector, year) %>%
+        summarize(calibrated.value = sum(calibrated.value)) %>%
+        ungroup() %>%
+        filter(calibrated.value == 0) %>%
+        inner_join(PosCoefInputs, by=c("region", "supplysector" = "minicam.energy.input")) %>%
+        select(region, supplysector) ->
+        SectorsWithPosCoefAndZeroCalVal
+
+      # Now, filter the subsector interp rules to remove these sectors
+      L232.SubsectorInterp_ind %>%
+        anti_join(SectorsWithPosCoefAndZeroCalVal, by=c("region", "supplysector")) ->
+        L232.SubsectorInterp_ind
+    }
+
+
     # L232.FuelPrefElast_indenergy: fuel preference elasticities of industrial energy use
     # First, calculate the fuel shares allocated to each fuel
     L232.in_EJ_R_indenergy_F_Yh %>%
@@ -436,7 +434,7 @@ module_energy_L232.other_industry <- function(command, ...) {
       rename(total = value.x,
              value = value.y) %>%
       mutate(share = value / total) %>%
-      filter(year == max(MODEL_BASE_YEARS)) %>%
+      filter(year == MODEL_FINAL_BASE_YEAR) %>%
       mutate(fuelprefElasticity = 0) ->
       L232.indenergy_fuel_shares
 
@@ -497,7 +495,7 @@ module_energy_L232.other_industry <- function(command, ...) {
     # filters base years from original and then appends future years
     L232.globaltech_retirement_base %>%
       mutate(year = as.integer(year)) %>%
-      filter(year == max(MODEL_BASE_YEARS)) %>%
+      filter(year == MODEL_FINAL_BASE_YEAR) %>%
       bind_rows(L232.globaltech_retirement_future) ->
       L232.globaltech_retirement
 
@@ -550,91 +548,8 @@ module_energy_L232.other_industry <- function(command, ...) {
       mutate(energy.final.demand = A32.demand[["energy.final.demand"]]) ->
       L232.BaseService_ind
 
-    # L232.IncomeElasticity_ind_scen: income elasticity of industry (scenario-specific)
-    L102.pcgdp_thous90USD_GCAM3_R_Y %>%
-      # Combine GCAM 3.0 with the SSPs, and subset only the relevant years
-      mutate(scenario = 'GCAM3') %>%
-      bind_rows(L102.pcgdp_thous90USD_Scen_R_Y) %>%
-      filter(year %in% c(max(MODEL_BASE_YEARS), MODEL_FUTURE_YEARS)) %>%
-      # Per-capita GDP ratios, which are used in the equation for demand growth
-      group_by(GCAM_region_ID, scenario) %>%
-      mutate(temp_lag = lag(value, 1),
-             value = value / temp_lag) %>%
-      ungroup %>%
-      select(-temp_lag) %>%
-      filter(year %in% MODEL_FUTURE_YEARS) ->
-      L232.pcgdpRatio_ALL_R_Y # intermediate tibble
 
-    # Calculate the industrial output as the base-year industrial output times the GDP ratio raised to the income elasticity
-    # The income elasticity is looked up based on the prior year's output
-    L232.pcgdpRatio_ALL_R_Y %>%
-      select(GCAM_region_ID, scenario) %>%
-      distinct %>%
-      left_join_error_no_match(GCAM_region_names, by = 'GCAM_region_ID') %>%
-      mutate(year = max(MODEL_BASE_YEARS)) %>%
-      left_join_error_no_match(L232.BaseService_ind, by = c("year", "region")) %>%
-      left_join_error_no_match(L101.Pop_thous_GCAM3_R_Y, by = c("year", "GCAM_region_ID")) %>%
-      mutate(value = base.service * CONV_BIL_THOUS / value) %>%
-      select(-base.service, -energy.final.demand) ->
-      L232.Output_ind
-
-    # At each time, the output is equal to the prior period's output times the GDP ratio, raised to the elasticity
-    # that corresponds to the output that was observed in the prior time period. This method prevents (ideally) runaway
-    # industrial production.
-    elast_years <- c(max(MODEL_BASE_YEARS), MODEL_FUTURE_YEARS)
-    for(i in seq_along(elast_years)[-1]) {
-      L232.Output_ind %>%
-        filter(year == elast_years[i - 1]) %>%
-        left_join(filter(L232.pcgdpRatio_ALL_R_Y, year == elast_years[i]), by = c("GCAM_region_ID", "scenario")) %>% # strick left join fails timeshift test due to NAs in L102.pcgdp_thous90USD_Scen_R_Y under timeshift mode
-        mutate(parameter = approx(x = A32.inc_elas_output[["pc.output_GJ"]],
-                                  y = A32.inc_elas_output[["inc_elas"]],
-                                  xout = value.x,
-                                  rule = 2)[['y']],
-               value = value.x * value.y ^ parameter,
-               year = elast_years[i]) %>%
-        select(GCAM_region_ID, scenario, region, year, value) %>%
-        bind_rows(L232.Output_ind) ->
-        L232.Output_ind
-    }
-
-    # Now that we have industrial output, we can back out the appropriate income elasticities
-    L232.Output_ind %>%
-      filter(year %in% MODEL_FUTURE_YEARS) %>%
-      mutate(value = approx( x = A32.inc_elas_output[["pc.output_GJ"]],
-                             y = A32.inc_elas_output[["inc_elas"]],
-                             xout = value,
-                             rule = 2)[["y"]]) %>%
-      mutate(value = round(value, energy.DIGITS_INCELAS_IND)) %>%
-      rename(income.elasticity = value) %>%
-      mutate(energy.final.demand = A32.demand[["energy.final.demand"]]) ->
-      L232.IncomeElasticity_ind # intermediate tibble
-
-    # KVC: SSP1 needs lower income elasticities. Storyline has limited growth in energy-related industries
-    # because of warm fuzzy feelings about environment. We are hard-coding this for a while.
-    L232.IncomeElasticity_ind %>%
-      filter(scenario == "SSP1") %>%
-      mutate(income.elasticity = income.elasticity * 0.75) %>%
-      bind_rows(filter(L232.IncomeElasticity_ind, scenario != "SSP1")) ->
-      L232.IncomeElasticity_ind
-
-    # ===================================================
-    # Produce outputs
-
-    # Extract GCAM3, SSP, and gSSP data and assign to separate tables
-    for(ieo in INCOME_ELASTICITY_OUTPUTS) {
-      L232.IncomeElasticity_ind %>%
-        filter(scenario == ieo) %>%
-        select(LEVEL2_DATA_NAMES[["IncomeElasticity"]]) %>%
-        add_title(paste("Income elasticity of industry -", ieo)) %>%
-        add_units("Unitless") %>%
-        add_comments("First calculate industrial output as the base-year industrial output times the GDP ratio raised to the income elasticity") %>%
-        add_comments("Then back out the appropriate income elasticities from industrial output") %>%
-        add_comments("Note lower income elasticities for SSP1 are hard-coded.") %>%
-        add_legacy_name(paste0("L232.IncomeElasticity_ind_", tolower(ieo))) %>%
-        add_precursors("L102.pcgdp_thous90USD_GCAM3_R_Y", "L102.pcgdp_thous90USD_Scen_R_Y", "common/GCAM_region_names", "L1326.in_EJ_R_indenergy_F_Yh", "L123.in_EJ_R_indchp_F_Yh", "energy/calibrated_techs", "L1324.in_EJ_R_indfeed_F_Yh", "energy/A32.globaltech_eff", "energy/A32.globaltech_shrwt", "energy/A32.demand", "L101.Pop_thous_GCAM3_R_Y", "socioeconomics/A32.inc_elas_output") ->
-        x
-      assign(paste0("L232.IncomeElasticity_ind_", tolower(ieo)), x)
-    }
+    # Produce outputs ----
 
     L232.Supplysector_ind %>%
       add_title("Supply sector information for industry sector") %>%
@@ -724,7 +639,6 @@ module_energy_L232.other_industry <- function(command, ...) {
       add_precursors("energy/A32.globaltech_cost") ->
       L232.GlobalTechCost_ind
 
-    L232.GlobalTechTrackCapital_ind
     L232.GlobalTechTrackCapital_ind %>%
       add_title("Convert non-energy inputs to track the annual capital investments.") %>%
       add_units(("Coefficients")) %>%
@@ -751,9 +665,9 @@ module_energy_L232.other_industry <- function(command, ...) {
     L232.StubTechCalInput_indenergy %>%
       add_title("Calibrated input of industrial energy use technologies (including cogen)") %>%
       add_units("EJ") %>%
-      add_comments("Calibrated input of industrial energy use values are calculated using L1324.in_EJ_R_indenergy_F_Yh then added information such as subsector, technology, minicam.energy.input, calibration, tech.share.weight, and etc.") %>%
+      add_comments("Calibrated input of industrial energy use values are calculated using L1328.in_EJ_R_indenergy_F_Yh then added information such as subsector, technology, minicam.energy.input, calibration, tech.share.weight, and etc.") %>%
       add_legacy_name("L232.StubTechCalInput_indenergy") %>%
-      add_precursors("L1326.in_EJ_R_indenergy_F_Yh", "energy/calibrated_techs", "energy/A32.globaltech_eff") ->
+      add_precursors("L1328.in_EJ_R_indenergy_F_Yh", "energy/calibrated_techs", "energy/A32.globaltech_eff") ->
       L232.StubTechCalInput_indenergy
 
     L232.StubTechCalInput_indfeed %>%
@@ -769,7 +683,7 @@ module_energy_L232.other_industry <- function(command, ...) {
       add_units("EJ") %>%
       add_comments("Service output values are calculated by technology, for energy-use and feedstocks then aggregated by region") %>%
       add_legacy_name("L232.StubTechProd_industry") %>%
-      add_precursors("L1326.in_EJ_R_indenergy_F_Yh", "L123.in_EJ_R_indchp_F_Yh", "common/GCAM_region_names", "energy/calibrated_techs", "L1324.in_EJ_R_indfeed_F_Yh", "energy/A32.globaltech_eff", "energy/A32.globaltech_shrwt") ->
+      add_precursors("L1328.in_EJ_R_indenergy_F_Yh", "L127.in_EJ_R_indchp_F_Yh", "common/GCAM_region_names", "energy/calibrated_techs", "L1324.in_EJ_R_indfeed_F_Yh", "energy/A32.globaltech_eff", "energy/A32.globaltech_shrwt") ->
       L232.StubTechProd_industry
 
     L232.StubTechCoef_industry %>%
@@ -777,7 +691,7 @@ module_energy_L232.other_industry <- function(command, ...) {
       add_units("Unitless") %>%
       add_comments("Service output values were first aggregated by sector to calculate the portion of each input as coefficients, then the coefficients were interpolated to cover last base year, future years and industry coefficient convergence year") %>%
       add_legacy_name("L232.StubTechCoef_industry") %>%
-      add_precursors("L1326.in_EJ_R_indenergy_F_Yh", "L123.in_EJ_R_indchp_F_Yh", "common/GCAM_region_names", "energy/calibrated_techs", "L1324.in_EJ_R_indfeed_F_Yh", "energy/A32.globaltech_eff", "energy/A32.globaltech_shrwt") ->
+      add_precursors("L1328.in_EJ_R_indenergy_F_Yh", "L127.in_EJ_R_indchp_F_Yh", "common/GCAM_region_names", "energy/calibrated_techs", "L1324.in_EJ_R_indfeed_F_Yh", "energy/A32.globaltech_eff", "energy/A32.globaltech_shrwt") ->
       L232.StubTechCoef_industry
 
     L232.FuelPrefElast_indenergy %>%
@@ -785,7 +699,7 @@ module_energy_L232.other_industry <- function(command, ...) {
       add_units("Unitless") %>%
       add_comments("First, calculate the fuel shares allocated to each fuel, then set fuel preference elasticities as indicated by exogenous rules(A32.fuelprefElasticity), lastly  fill out elasticities from the first future model time period") %>%
       add_legacy_name("L232.FuelPrefElast_indenergy") %>%
-      add_precursors("L1326.in_EJ_R_indenergy_F_Yh", "L123.in_EJ_R_indchp_F_Yh", "common/GCAM_region_names", "energy/calibrated_techs", "energy/A32.fuelprefElasticity") ->
+      add_precursors("L1328.in_EJ_R_indenergy_F_Yh", "L127.in_EJ_R_indchp_F_Yh", "common/GCAM_region_names", "energy/calibrated_techs", "energy/A32.fuelprefElasticity") ->
       L232.FuelPrefElast_indenergy
 
     L232.PerCapitaBased_ind %>%
@@ -866,24 +780,11 @@ module_energy_L232.other_industry <- function(command, ...) {
       add_units("EJ") %>%
       add_comments("Extracted base-year service output of industry final demand from L232.StubTechProd_industry") %>%
       add_legacy_name("L232.BaseService_ind") %>%
-      add_precursors("L1326.in_EJ_R_indenergy_F_Yh", "L123.in_EJ_R_indchp_F_Yh", "common/GCAM_region_names", "energy/calibrated_techs", "L1324.in_EJ_R_indfeed_F_Yh", "energy/A32.globaltech_eff", "energy/A32.globaltech_shrwt", "energy/A32.demand") ->
+      add_precursors("L1328.in_EJ_R_indenergy_F_Yh", "L127.in_EJ_R_indchp_F_Yh", "common/GCAM_region_names", "energy/calibrated_techs", "L1324.in_EJ_R_indfeed_F_Yh", "energy/A32.globaltech_eff", "energy/A32.globaltech_shrwt", "energy/A32.demand") ->
       L232.BaseService_ind
 
-    return_data(L232.Supplysector_ind, L232.SubsectorLogit_ind, L232.FinalEnergyKeyword_ind,
-                L232.SubsectorShrwtFllt_ind, L232.SubsectorInterp_ind,
-                L232.StubTech_ind, L232.GlobalTechShrwt_ind,
-                L232.StubTechInterp_ind, L232.GlobalTechEff_ind, L232.GlobalTechCoef_ind,
-                L232.GlobalTechCost_ind, L232.GlobalTechSecOut_ind, L232.GlobalTechCSeq_ind,
-                L232.StubTechCalInput_indenergy, L232.StubTechCalInput_indfeed, L232.StubTechProd_industry,
-                L232.StubTechCoef_industry, L232.FuelPrefElast_indenergy, L232.PerCapitaBased_ind,
-                L232.PriceElasticity_ind, L232.BaseService_ind, L232.GlobalTechShutdown_en,
-                L232.GlobalTechSCurve_en, L232.GlobalTechLifetime_en, L232.GlobalTechProfitShutdown_en,
-                L232.IncomeElasticity_ind_gcam3, L232.IncomeElasticity_ind_gssp1,
-                L232.IncomeElasticity_ind_gssp2, L232.IncomeElasticity_ind_gssp3,
-                L232.IncomeElasticity_ind_gssp4, L232.IncomeElasticity_ind_gssp5,
-                L232.IncomeElasticity_ind_ssp1, L232.IncomeElasticity_ind_ssp2,
-                L232.IncomeElasticity_ind_ssp3, L232.IncomeElasticity_ind_ssp4,
-                L232.IncomeElasticity_ind_ssp5, L232.GlobalTechTrackCapital_ind)
+    return_data(MODULE_OUTPUTS)
+
   } else {
     stop("Unknown command")
   }

@@ -52,17 +52,17 @@
 using namespace std;
 
 //! Constructor
-XMLLogger::XMLLogger( const string& aLoggerName ):Logger( aLoggerName ){
+XMLLogger::XMLLogger( std::ostream* aCout, const string& aLoggerName ):Logger( aCout, aLoggerName ){
 }
 
 //! Tells the logger to begin logging.
 void XMLLogger::open( const char[] ){
-	if( mFileName == "" ) { // set a default value
-		cout << "Using default log file name." << endl;
+	if( mFileName.empty() ) { // set a default value
+		(*mCout) << "Using default log file name." << endl;
 		mFileName = "log.xml";
 	}
 
-    mLogFile.open( mFileName.c_str(), ios::out );
+    mLogFile.open( mFileName.get().c_str(), ios::out );
 
 	// Print the header message
 	time_t localTime;

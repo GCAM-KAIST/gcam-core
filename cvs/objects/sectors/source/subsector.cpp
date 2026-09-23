@@ -114,11 +114,11 @@ void Subsector::clearInterpolationRules() {
 * \author Sonny Kim
 * \return sector name as a string
 */
-const string& Subsector::getName() const {
+const gcamstr& Subsector::getName() const {
     return mName;
 }
 
-void Subsector::setNames( const string& aRegionName, const string& aSectorName ) {
+void Subsector::setNames( const gcamstr& aRegionName, const gcamstr& aSectorName ) {
     mRegionName = aRegionName;
     mSectorName = aSectorName;
 }
@@ -227,7 +227,7 @@ void Subsector::completeInit( const IInfo* aSectorInfo,
         abort();
     }
 
-    mSubsectorInfo.reset( InfoFactory::constructInfo( aSectorInfo, mRegionName + "-" + mSectorName + "-" + mName ) );
+    mSubsectorInfo.reset( InfoFactory::constructInfo( aSectorInfo, mName ) );
     
     for ( TechIterator techIter = mTechContainers.begin(); techIter != mTechContainers.end(); ++techIter ) {
         (*techIter)->completeInit( mRegionName, mSectorName, mName, mSubsectorInfo.get(), aLandAllocator );
@@ -265,7 +265,7 @@ void Subsector::completeInit( const IInfo* aSectorInfo,
 void Subsector::initCalc( const Demographic* aDemographics,
                           const int aPeriod )
 {
-    mDiscreteChoiceModel->initCalc( mRegionName, mName, false, aPeriod );
+    mDiscreteChoiceModel->initCalc( mRegionName, mName, aPeriod );
     
     // Initialize all technologies.
     for( TechIterator techIter = mTechContainers.begin(); techIter != mTechContainers.end(); ++techIter ) {

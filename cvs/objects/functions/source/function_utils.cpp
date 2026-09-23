@@ -101,84 +101,6 @@ double FunctionUtils::PMT( double aRate, double aNper, double aPV )
     return -1;
 }
 
-//! Function to return average number of hours in a year.
-double FunctionUtils::HOURS_PER_YEAR( void )
-{
-    return 8766;
-}
-
-//! Function to return hours per day.
-double FunctionUtils::HOURS_PER_DAY( void )
-{
-    return 24;
-}
-
-//! Function to return 2003 to 1975 US $ deflator.
-double FunctionUtils::DEFLATOR_1975_PER_DEFLATOR_2003( void )
-{
-    return 0.357; // Ratio of 1975/2003 deflators
-}
-
-//! Function to return 2005 to 1975 US $ deflator.
-double FunctionUtils::DEFLATOR_1975_PER_DEFLATOR_2005( void )
-{
-    return 0.337; // Ratio of 1975/2005 deflators
-}
-
-//! Function to return 1990 to 1975 US $ deflator.
-double FunctionUtils::DEFLATOR_1990_PER_DEFLATOR_1975( void )
-{
-    return 2.212; // Ratio of 1990/1975 deflators
-}
-
-//! Function to return kWh to GJ conversion.
-double FunctionUtils::GJ_PER_KWH( void )
-{
-    return 0.003600457; // GJ/kWh
-}
-
-//! Function to return kWh to GJ conversion.
-double FunctionUtils::GJ_PER_MWH( void )
-{
-    return 3.600457; // GJ/MWh
-}
-
-//! Function to return EJ to GJ conversion.
-double FunctionUtils::GJ_PER_EJ( void )
-{
-    return 1.0E+9; // GJ/EJ
-}
-
-//! Function to return EJ to GJ conversion.
-double FunctionUtils::MWH_PER_GWH( void )
-{
-    return 1.0E+3; // MWh/GWh
-}
-
-//! Function to return GWh to EJ conversion.
-double FunctionUtils::EJ_PER_GWH( void )
-{
-    return GJ_PER_MWH() / GJ_PER_EJ() * MWH_PER_GWH(); // EJ/GWh
-}
-
-//! Function to return GJ to GWh conversion.
-double FunctionUtils::GWH_PER_GJ( void )
-{
-    return 2.778E-4; // GWh/GJ
-}
-
-//! Function to return GJ to MWh conversion.
-double FunctionUtils::MWH_PER_GJ( void )
-{
-    return 2.778E-1; // MWh/GJ
-}
-
-//! Function to return metric ton to kg conversion.
-double FunctionUtils::KG_PER_METRIC_TON( void )
-{
-    return 1000; // kg/tonne
-}
-
 //! Function to return sum of all physical demand inputs
 double FunctionUtils::getPhysicalDemandSum( const InputSet& aInputs,
                                             const int aPeriod )
@@ -207,7 +129,7 @@ double FunctionUtils::getCoefSum( const InputSet& input,
 * \return A constant pointer to the input, null if it does not exist.
 */
 IInput* FunctionUtils::getInput( const InputSet& aInputs,
-                                 const string& aInputName )
+                                 const gcamstr& aInputName )
 {
     for( InputSet::const_iterator input = aInputs.begin(); input != aInputs.end(); ++input ) {
         if( ( *input )->getName() == aInputName ) {
@@ -272,7 +194,7 @@ double FunctionUtils::getRho( const double aSigma )
 * \author Josh Lurz
 */
 double FunctionUtils::getNetPresentValueMult( const InputSet& aInputs,
-                                              const string& aRegionName,
+                                              const gcamstr& aRegionName,
                                               const double aLifetimeYears,
                                               const int aPeriod )
 {
@@ -317,8 +239,8 @@ double FunctionUtils::calcNetPresentValueMult( const double aDiscountRate,
 * \param aPeriod Model period in which to set the price paid.
 * \param aPricePaid The price paid.
 */
-void FunctionUtils::setPricePaid( const string& aRegionName,
-                                  const string& aGoodName,
+void FunctionUtils::setPricePaid( const gcamstr& aRegionName,
+                                  const gcamstr& aGoodName,
                                   const int aPeriod,
                                   const double aPricePaid )
 {
@@ -327,7 +249,7 @@ void FunctionUtils::setPricePaid( const string& aRegionName,
 
     /*! \invariant The market and market info must exist. */
     assert( marketInfo );
-    marketInfo->setDouble( "pricePaid", aPricePaid );
+    marketInfo->setDouble( gcamstr("pricePaid"), aPricePaid );
 }
 
 /*! \brief Gets the price paid for the good by querying the marketplace.
@@ -338,8 +260,8 @@ void FunctionUtils::setPricePaid( const string& aRegionName,
 * \param aPeriod Model period in which to get the price paid.
 * \return The price paid, 0 if there is not one set.
 */
-double FunctionUtils::getPricePaid( const string& aRegionName,
-                                    const string& aGoodName,
+double FunctionUtils::getPricePaid( const gcamstr& aRegionName,
+                                    const gcamstr& aGoodName,
                                     const int aPeriod )
 {
     assert( aGoodName != "USA" );
@@ -348,7 +270,7 @@ double FunctionUtils::getPricePaid( const string& aRegionName,
 
     /*! \invariant The market and market info must exist. */
     assert( marketInfo );
-    return marketInfo->getDouble( "pricePaid", true );
+    return marketInfo->getDouble( gcamstr("pricePaid"), true );
 }
 
 /*! \brief Set the price received for a good into the marketplace.
@@ -359,8 +281,8 @@ double FunctionUtils::getPricePaid( const string& aRegionName,
 * \param aPeriod Model period in which to set the price received.
 * \param aPriceReceived Price received to set.
 */
-void FunctionUtils::setPriceReceived( const string& aRegionName,
-                                      const string& aGoodName,
+void FunctionUtils::setPriceReceived( const gcamstr& aRegionName,
+                                      const gcamstr& aGoodName,
                                       const int aPeriod,
                                       const double aPriceReceived )
 {
@@ -370,7 +292,7 @@ void FunctionUtils::setPriceReceived( const string& aRegionName,
 
     /*! \invariant The market and market info must exist. */
     assert( marketInfo );
-    marketInfo->setDouble( "priceReceived", aPriceReceived );
+    marketInfo->setDouble( gcamstr("priceReceived"), aPriceReceived );
 }
 
 /*! \brief Gets the price received for the good by querying the marketplace.
@@ -381,8 +303,8 @@ void FunctionUtils::setPriceReceived( const string& aRegionName,
 * \param aPeriod Model period in which to get the price received.
 * \return The price received, 0 if there is not one set.
 */
-double FunctionUtils::getPriceReceived( const string& aRegionName,
-                                        const string& aGoodName,
+double FunctionUtils::getPriceReceived( const gcamstr& aRegionName,
+                                        const gcamstr& aGoodName,
                                         const int aPeriod )
 {
     assert( aGoodName != "USA" );
@@ -390,7 +312,7 @@ double FunctionUtils::getPriceReceived( const string& aRegionName,
     const IInfo* marketInfo = marketplace->getMarketInfo( aGoodName, aRegionName, aPeriod, true );
     /*! \invariant The market and market info must exist. */
     assert( marketInfo );
-    return marketInfo->getDouble( "priceReceived", true );
+    return marketInfo->getDouble( gcamstr("priceReceived"), true );
 }
 
 /*! \brief Calculate the expected price received for the good produced by the
@@ -407,8 +329,8 @@ double FunctionUtils::getPriceReceived( const string& aRegionName,
 * \author Josh Lurz
 */
 double FunctionUtils::getExpectedPriceReceived( const InputSet& aInputs,
-                                                const string& aRegionName,
-                                                const string& aGoodName,
+                                                const gcamstr& aRegionName,
+                                                const gcamstr& aGoodName,
                                                 const double aLifetimeYears,
                                                 const int aPeriod )
 {
@@ -417,95 +339,12 @@ double FunctionUtils::getExpectedPriceReceived( const InputSet& aInputs,
            * getNetPresentValueMult( aInputs, aRegionName, aLifetimeYears, aPeriod );
 }
 
-/*! \brief Apply technical change to a vector of inputs.
-* \details 
-* \param input Vector of inputs for the demand function.
-* \param aTechChange A structure containing the various possible types of
-*        technical change.
-* \param regionName Name of the region containing the function.
-* \param sectorName Name of the sector containing the function.
-* \param alphaZero The up-front scaler.
-* \param sigma Sigma coefficient.
-* \return The new alpha zero.
-*/
-double FunctionUtils::applyTechnicalChangeInternal( InputSet& aInputs,
-                                                    const TechChange& aTechChange,
-                                                    const string& aRegionName,
-                                                    const string& aSectorName,
-                                                    const int aPeriod,
-                                                    double aAlphaZero,
-                                                    double aSigma )
-{
-    const int timeStep = scenario->getModeltime()->gettimestep( aPeriod );
-    for( InputIterator i = aInputs.begin(); i != aInputs.end(); ++i ) {
-        double techChange = FunctionUtils::getTechChangeForInput( *i,
-                                                                  aTechChange,
-                                                                  aPeriod );
-        if( techChange > 0 ) {
-            double scaleFactor = pow( 1 + techChange, timeStep );
-            double newCoef = (*i)->getCoefficient( aPeriod ) / scaleFactor;
-            (*i)->setCoefficient( newCoef, aPeriod );
-        }
-    }
-    // Apply hicks tech change.
-    if( aTechChange.mHicksTechChange > 0 ) {
-        double scaleFactor = pow( 1 + aTechChange.mHicksTechChange,
-                                  timeStep );
-        aAlphaZero *= scaleFactor;
-    }
-
-    return aAlphaZero;
-}
-
-/*!
- * \brief Determine the technical change coefficient to apply to the input.
- * \details The technical change coefficient applied to an input may be one of
- *          three items. If the input has a read-in technical change
- *          coefficient(currently greater than zero), then that technical change
- *          will be used. Otherwise, the Technology's energy technical change
- *          will be used if it is an energy input, and the Technology's material
- *          technical change input will be if it is a material input. An input
- *          cannot both be a material and energy input. Note that Hicks neutral
- *          technical change will always be applied in addition.
- * \param aInput Input for which to get the technical change.
- * \param aTechChange Technical change containing structure.
- * \param aPeriod Model period.
- * \return The technical change to apply to the input.
- */
-double FunctionUtils::getTechChangeForInput( const IInput* aInput,
-                                             const TechChange& aTechChange,
-                                             const int aPeriod )
-{
-    // Get the input specific technical change.
-    double techChange = aInput->getTechChange( aPeriod );
-
-    // If an input specific technical change was not read-in, use an energy
-    // or material technical change. TODO: Check for not-initialized vs.
-    // zero.
-    if( techChange == 0 ){
-        if( aInput->hasTypeFlag( IInput::ENERGY ) ){
-            techChange = aTechChange.mEnergyTechChange;
-        }
-        else if( aInput->hasTypeFlag( IInput::MATERIAL ) ){
-            techChange = aTechChange.mMaterialTechChange;
-        }
-    }
-    return techChange;
-}
-
 /*! \brief Return whether a good is a fixed price good.
 * \param aRegionName Region name.
 * \param aGoodName Good name.
 * \param aPeriod Model period.
 * \return Whether the good is a fixed price good.
 */
-bool FunctionUtils::isFixedPrice( const string& aRegionName,
-                                  const string& aGoodName,
-                                  const int aPeriod )
-{
-    const IInfo* marketInfo = scenario->getMarketplace()->getMarketInfo( aGoodName, aRegionName, aPeriod, false );
-    return marketInfo && marketInfo->getBoolean( "IsFixedPrice", false );
-}
 
 /*! \brief Static function which returns the conversion factor for the good
 *          which is stored in the marketplace.
@@ -515,8 +354,8 @@ bool FunctionUtils::isFixedPrice( const string& aRegionName,
 *                   for it to not exist for consumers.
 * \return The conversion factor for the good.
 */
-double FunctionUtils::getMarketConversionFactor( const string& aRegionName,
-                                                 const string& aGoodName,
+double FunctionUtils::getMarketConversionFactor( const gcamstr& aRegionName,
+                                                 const gcamstr& aGoodName,
                                                  const bool aMustExist )
 {
     assert( !aGoodName.empty() && !aRegionName.empty() );
@@ -524,7 +363,7 @@ double FunctionUtils::getMarketConversionFactor( const string& aRegionName,
 
     const IInfo* marketInfo = scenario->getMarketplace()->getMarketInfo( aGoodName, aRegionName, 0, aMustExist );
 
-    return marketInfo ? marketInfo->getDouble( "ConversionFactor", aMustExist ) : 0;
+    return marketInfo ? marketInfo->getDouble( gcamstr("ConversionFactor"), aMustExist ) : 0;
 }
 
 /*!
@@ -561,8 +400,8 @@ void FunctionUtils::copyInputParamsForward( const InputSet& aPrevInputs,
  *                   for it to not exist for consumers.
  * \return The CO2 emissions coefficient for the good.
  */
-double FunctionUtils::getCO2Coef( const string& aRegionName,
-                                  const string& aGoodName,
+double FunctionUtils::getCO2Coef( const gcamstr& aRegionName,
+                                  const gcamstr& aGoodName,
                                   const int aPeriod,
                                   const bool aMustExist )
 {
@@ -574,7 +413,8 @@ double FunctionUtils::getCO2Coef( const string& aRegionName,
     // to the primary good. The info should not be null except in cases of
     // improperly constructed input files. This function will have already
     // warned in that case.
-    return productInfo ? productInfo->getDouble( "CO2coefficient", false ) : 0;
+    static const gcamstr CO2CoefKey("CO2coefficient");
+    return productInfo ? productInfo->getDouble( CO2CoefKey, false ) : 0;
 }
 
 /*!
@@ -591,7 +431,7 @@ double FunctionUtils::getCO2Coef( const string& aRegionName,
  * \return Price ratio for the input.
  * \author Josh Lurz
  */
-double FunctionUtils::calcPriceRatio( const string& aRegionName,
+double FunctionUtils::calcPriceRatio( const gcamstr& aRegionName,
                                       const IInput* aInput,
                                       const int aBasePeriod,
                                       const int aCurrentPeriod )
@@ -635,17 +475,17 @@ InputSet FunctionUtils::getLeafInputs( const INestedInput* aNestedInput ) {
  * \param aCapitalGoodPrice The price to set.
  * \author Pralit Patel
  */
-void FunctionUtils::setCapitalGoodPrice( const string& aRegionName,
+void FunctionUtils::setCapitalGoodPrice( const gcamstr& aRegionName,
                                          const int aPeriod,
                                          const double aCapitalGoodPrice )
 {
-    static const string capitalGoodName = "Capital";
+    static const gcamstr capitalGoodName("Capital");
     Marketplace* marketplace = scenario->getMarketplace();
     IInfo* marketInfo = marketplace->getMarketInfo( capitalGoodName, aRegionName, aPeriod, true );
 
     /*! \invariant The market and market info must exist. */
     assert( marketInfo );
-    marketInfo->setDouble( "CapitalGoodPrice", aCapitalGoodPrice );
+    marketInfo->setDouble( gcamstr("CapitalGoodPrice"), aCapitalGoodPrice );
 }
 
 /*!
@@ -660,13 +500,13 @@ void FunctionUtils::setCapitalGoodPrice( const string& aRegionName,
  * \return The price of the capital good.
  * \author Pralit Patel
  */
-double FunctionUtils::getCapitalGoodPrice( const string& aRegionName,
+double FunctionUtils::getCapitalGoodPrice( const gcamstr& aRegionName,
                                            const int aPeriod )
 {
-    static const string capitalGoodName = "Capital";
+    static const gcamstr capitalGoodName("Capital");
     const Marketplace* marketplace = scenario->getMarketplace();
     const IInfo* marketInfo = marketplace->getMarketInfo( capitalGoodName, aRegionName, aPeriod, true );
     /*! \invariant The market and market info must exist. */
     assert( marketInfo );
-    return marketInfo->getDouble( "CapitalGoodPrice", true );
+    return marketInfo->getDouble( gcamstr("CapitalGoodPrice"), true );
 }

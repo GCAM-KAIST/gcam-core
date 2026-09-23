@@ -21,6 +21,7 @@
 module_gcamusa_L2244.nuclear <- function(command, ...) {
   if(command == driver.DECLARE_INPUTS) {
     return(c(FILE = "gcam-usa/nuc_gen2",
+             FILE = "gcam-usa/us_nuclear_legacy",
              FILE = "gcam-usa/A23.elecS_tech_mapping",
              FILE = "gcam-usa/A23.elecS_tech_mapping_cool",
              FILE = "gcam-usa/usa_seawater_states_basins",
@@ -38,6 +39,9 @@ module_gcamusa_L2244.nuclear <- function(command, ...) {
 
     # Load required inputs
     nuc_gen2 <- get_data(all_data, "gcam-usa/nuc_gen2")
+    us_nuclear_legacy <- get_data(all_data, "gcam-usa/us_nuclear_legacy", strip_attributes = TRUE) %>%
+      select(-current_license, -assumed_extension) %>%
+      rename(plant = plant_name)
     A23.elecS_tech_mapping <- get_data(all_data, "gcam-usa/A23.elecS_tech_mapping", strip_attributes = TRUE)
     A23.elecS_tech_mapping_cool <- get_data(all_data, "gcam-usa/A23.elecS_tech_mapping_cool")
     A23.elecS_tech_availability <- get_data(all_data, "gcam-usa/A23.elecS_tech_availability")
@@ -61,16 +65,34 @@ module_gcamusa_L2244.nuclear <- function(command, ...) {
     }
 
     # Prepare a table by state, year, and desired nuc_gen2 generation in EJ.
-    nuc_gen2 %>%
+    # This is an updated nuclear legacy cost file including assumed license extension dates
+    # Vogtle-3 and Vogtle-4 have been removed from the legacy reactor data because they are not classified as Gen II.
+    # 2025 shareweights for large reactors have been updated to allow for new nuclear development to represent these reactors.
+    us_nuclear_legacy %>%
+      mutate(Units = 'EJ', `2105` = 0) %>%
       gather(year, gen, -region, -plant, -Units) %>%
       mutate(year = as.integer(year))  %>%
-      filter(year >= max(HISTORICAL_YEARS)) %>%
-      mutate(time = year - max(HISTORICAL_YEARS)) %>%
+      # need to interpolate, as this input only has info in 5 year timesteps
+      # which is an issue when the base years are annual
+      complete(nesting(region, plant, Units), year = c(MODEL_BASE_YEARS, MODEL_FUTURE_YEARS)) %>%
+      # interpolate missing years
+      group_by(region, plant, Units) %>%
+      mutate(gen = approx_fun(year, gen, rule = 2)) %>%
+      filter(year >= MODEL_FINAL_BASE_YEAR) %>%
+      mutate(time = year - MODEL_FINAL_BASE_YEAR) %>%
       group_by(region, year, time) %>%
       summarise(gen = sum(gen)) %>%
       ungroup() %>%
       arrange(region, year) ->
       L2244.nuc_gen2_gen
+
+    # # Calculate lifetime for Gen II technology by state based on first year of zero generation in each state
+    # L2244.nuc_gen2_gen %>%
+    #   group_by(region) %>%
+    #   mutate(isfirst_zero = if_else(gen == 0 & !is.na(lag(gen)) & lag(gen) != 0, TRUE, FALSE)) %>%
+    #   filter(isfirst_zero == TRUE) %>%
+    #   select(region, lifetime = time) ->
+    #   L2244.nuc_gen2_lifetime
 
     # Calculate lifetime for Gen II technology by state based on first year of zero generation in each state
     L2244.nuc_gen2_gen %>%
@@ -79,6 +101,7 @@ module_gcamusa_L2244.nuclear <- function(command, ...) {
       filter(isfirst_zero == TRUE) %>%
       select(region, lifetime = time) ->
       L2244.nuc_gen2_lifetime
+
 
 
     # Loop into states and find s-curve parameters such that the error between actual and calculated data is minimized
@@ -127,7 +150,7 @@ module_gcamusa_L2244.nuclear <- function(command, ...) {
       # left_join_error_no_match throws error due to NA for Oregon, so left_join is used instead
       left_join(L2244.nuc_gen2_lifetime, by = "region") %>%
       filter(!is.na(lifetime)) %>%
-      mutate(year = max(MODEL_BASE_YEARS)) %>%
+      mutate(year = MODEL_FINAL_BASE_YEAR) %>%
       rename(supplysector = Electric.sector, stub.technology = Electric.sector.technology) %>%
       select(LEVEL2_DATA_NAMES[["StubTechSCurve"]]) ->
       L2244.StubTechSCurve_nuc_gen2_USA
@@ -166,6 +189,7 @@ module_gcamusa_L2244.nuclear <- function(command, ...) {
       add_comments("S-curve parameters are based on minimized error between estimated and planned retirement data.") %>%
       add_legacy_name("L2244.StubTechSCurve_nuc_gen2_USA") %>%
       add_precursors("gcam-usa/nuc_gen2",
+                     "gcam-usa/us_nuclear_legacy",
                      "gcam-usa/A23.elecS_tech_availability",
                      "gcam-usa/A23.elecS_tech_mapping_cool",
                      "gcam-usa/usa_seawater_states_basins",

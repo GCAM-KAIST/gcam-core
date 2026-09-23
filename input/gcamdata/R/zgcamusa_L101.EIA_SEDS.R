@@ -2,7 +2,7 @@
 
 #' module_gcamusa_L101.EIA_SEDS
 #'
-#' Produce two ouput tables from the EIA state energy database:
+#' Produce two output tables from the EIA state energy database:
 #' \itemize{
 #'  \item{L101.inEIA_EJ_state_S_F: Energy data by GCAM sector and fuel, state, and year; energy units in EJ, years from 1971-2010, includes only rows that have a defined sector and fuel}
 #'  \item{L101.EIA_use_all_Bbtu: Energy data by EIA sector and fuel code, GCAM sector and fuel, MSN, state, and year; energy units in Billion BTU, years from 1960-2011, includes all original data}
@@ -48,6 +48,14 @@ module_gcamusa_L101.EIA_SEDS <- function(command, ...) {
     A_fuel_conv <- get_data(all_data, "gcam-usa/A_fuel_conv")
 
     # ===================================================
+
+    # warning to update SEDS data if the maximum year is earlier than base year
+    EIA_use_max_year <- max((EIA_use_all_Bbtu %>% gather_years())$year)
+    if (EIA_use_max_year < FINAL_HISTORICAL_YEAR) {
+      warning("L101.EIA_SEDS: Update SEDS data (EIA_use_all_Bbtu) till latest historical year.")
+      EIA_missing_years <- HISTORICAL_YEARS[HISTORICAL_YEARS > EIA_use_max_year]
+      EIA_use_all_Bbtu <- copy_data_forward_wide(EIA_use_all_Bbtu, EIA_use_max_year, EIA_missing_years)
+    }
 
     # Prep for output tables - add columns for GCAM sector and fuel names, using the substrings of the Mnemonic Series Name (MSN) code, and filter out U.S.
     EIA_use_all_Bbtu %>%
@@ -95,7 +103,7 @@ module_gcamusa_L101.EIA_SEDS <- function(command, ...) {
 
     # To create this third output table, I need to split the dataframe and recombine
     Bbtu_with_GCAM_names_intermediate %>%
-      filter(year %in% gcamusa.SEDS_DATA_YEARS) %>% # Custom year range (1971:2017), want to keep NAs in 1960-1970
+      filter(year %in% unique(seq(min(HISTORICAL_YEARS), max((EIA_use_all_Bbtu %>% gather_years())$year)))) %>% # Filter by most recent SEDS data years, want to keep NAs in 1960-1970
       fill(value) %>% # Replace NAs in 1971-1979 with values from one year more recent
       bind_rows(filter(Bbtu_with_GCAM_names_intermediate, year %in% 1960:1970)) %>% # Reattaching 1960-1970 rows
       arrange(Data_Status, state, MSN, EIA_fuel, EIA_sector, sector, fuel, -year) ->

@@ -58,8 +58,8 @@ using namespace std;
  * \details In the food demand system the price of the parent is the price of "materials" which is just
  *          held constant so this method just returns that price unchanged.
  */
-double FoodDemandFunction::calcLevelizedCost( const InputSet& aInputs, const std::string& aRegionName,
-                          const std::string& aSectorName, int aPeriod, double aAlphaZero, double aSigma,
+double FoodDemandFunction::calcLevelizedCost( const InputSet& aInputs, const gcamstr& aRegionName,
+                          const gcamstr& aSectorName, int aPeriod, double aAlphaZero, double aSigma,
                           const IInput* aParentInput ) const
 {
     // This is the price of materials which does not to get adjusted by this function.
@@ -98,8 +98,8 @@ double FoodDemandFunction::calcLevelizedCost( const InputSet& aInputs, const std
  * \param aPriceAbove The price of the parent node which is the considered the price of materials.
  * \return The "demand" for materials which is really just the residual from the food demands.
  */
-double FoodDemandFunction::calcDemand( InputSet& aInput, double income, const std::string& aRegionName,
-                       const std::string& sectorName, const double aShutdownCoef, int aPeriod,
+double FoodDemandFunction::calcDemand( InputSet& aInput, double income, const gcamstr& aRegionName,
+                       const gcamstr& sectorName, const double aShutdownCoef, int aPeriod,
                        double capitalStock, double alphaZero, double sigma, double aPriceAbove, const IInput* aParentInput ) const
 {
     // the price of the parent node which is the considered the price of materials
@@ -139,13 +139,6 @@ double FoodDemandFunction::calcDemand( InputSet& aInput, double income, const st
         for( size_t j = 0; j < aInput.size(); ++j ) {
             currDemand *= pow( adjPricesCapped[j], foodInputs[i]->calcPriceExponent( foodInputs[j], adjIncome, aRegionName, aPeriod ) );
         }
-        if( adjPrices[i] < adjPricesCapped[i] ) {
-            // we have been sent negative prices, since we have capped prices
-            // in the demand calculations above we need to apply some penalty
-            // to send a signal to the solver such that the more negative a price
-            // becomes, the higher the demand
-            currDemand = SectorUtils::adjustDemandForNegativePrice( currDemand, adjPrices[i] );
-        }
         demands[i] = currDemand;
         // the demand for materials is just the residual of the food demand:
         // q_m = x - SUM_i(w_i * q_i)
@@ -174,6 +167,13 @@ double FoodDemandFunction::calcDemand( InputSet& aInput, double income, const st
     // point, the inputs will take care of converting to Pcal / year as
     // is expected in the supply sectors.
     for( size_t i = 0; i < aInput.size(); ++i ) {
+        if( adjPrices[i] < adjPricesCapped[i] ) {
+            // we have been sent negative prices, since we have capped prices
+            // in the demand calculations above we need to apply some penalty
+            // to send a signal to the solver such that the more negative a price
+            // becomes, the higher the demand
+            demands[i] = SectorUtils::adjustDemandForNegativePrice( demands[i], adjPrices[i] );
+        }
         foodInputs[i]->setPhysicalDemand( demands[i], aRegionName, aPeriod );
         foodInputs[i]->setActualShare( alphaActual[i], aRegionName, aPeriod );
     }

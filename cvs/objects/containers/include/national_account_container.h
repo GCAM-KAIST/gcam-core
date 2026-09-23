@@ -75,10 +75,10 @@ public:
     NationalAccountContainer();
     virtual ~NationalAccountContainer();
     static const std::string& getXMLNameStatic();
-    const std::string& getGDPMarketName() const;
-    const std::string& getGDPActivityName() const;
+    const gcamstr& getGDPMarketName() const;
+    const gcamstr& getGDPActivityName() const;
     void toDebugXML( const int period, std::ostream& out, Tabs* tabs ) const;
-    void completeInit( const std::string& aRegionName, const Demographic* aDemographics );
+    void completeInit( const gcamstr& aRegionName, const Demographic* aDemographics );
     void initCalc( const Demographic* aDemographics, const int aPeriod );
     
     // the main calc method
@@ -104,16 +104,16 @@ public:
         DEFINE_VARIABLE( CONTAINER, "NationalAccount", mNationalAccounts, std::vector<NationalAccount*> ),
                 
         /*! \brief region name */
-        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "regionName", mRegionName, std::string ),
+        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "regionName", mRegionName, gcamstr ),
                 
         /*! \brief gdp trial market name */
-        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "GDPMrkName", mGDPMrkName, std::string ),
+        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "GDPMrkName", mGDPMrkName, gcamstr ),
                         
         /*! \brief gdp activity name */
-        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "GDPActName", mGDPActName, std::string ),
+        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "GDPActName", mGDPActName, gcamstr ),
                 
         /*! \brief negative emissions budget policy name */
-        DEFINE_VARIABLE( SIMPLE, "negative-emiss-budget-name", mNegEmissBudgetName, std::string ),
+        DEFINE_VARIABLE( SIMPLE, "negative-emiss-budget-name", mNegEmissBudgetName, gcamstr ),
                 
         /*! \brief negative emissions budget GDP fraction */
         DEFINE_VARIABLE( SIMPLE, "negative-emiss-budget-fraction", mNegEmissBudgetFraction, Value ),
@@ -123,12 +123,15 @@ public:
                 
         /*! \brief curr GDP value state variable */
         DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE | STATE, "curr-GDP", mCurrGDP, Value ),
+        
+        /*! \brief the fixed GDP to add to the  market when in fixed mode, ideally wouldn't need this but required to addToSupply */
+        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE | STATE, "fixed-GDP-for-market", mFixedGDPForMarket, Value ),
                                 
         /*! \brief net energy export market name */
-        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "EnergyNetExportMrkName", mEnergyNetExportMrkName, std::string ),
-    
-        /*! \brief energy servicemarket name */
-        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "EnergyServiceMrkName", mEnergyServiceMrkName, std::string ),
+        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "EnergyNetExportMrkName", mGCAMNetExportMrkName, gcamstr ),
+
+        /*! \brief ag food value market name */
+        DEFINE_VARIABLE( SIMPLE, "ag-food-market", mAgFoodMrkName, gcamstr ),
 
         //! MER to PPP scale conversion
         DEFINE_VARIABLE( SIMPLE, "gdp-ppp-conversion", mPPPConversion, Value ),

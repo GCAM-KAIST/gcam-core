@@ -52,7 +52,7 @@ using namespace std;
 
 extern Scenario* scenario;
 
-PrimaryOutput::PrimaryOutput( const string& aSectorName )
+PrimaryOutput::PrimaryOutput( const gcamstr& aSectorName )
 {
     mName = aSectorName;
 }
@@ -80,7 +80,7 @@ bool PrimaryOutput::isSameType( const string& aType ) const
     return aType == "primary-output";
 }
 
-const string& PrimaryOutput::getName() const
+const gcamstr& PrimaryOutput::getName() const
 {
     // Make sure the name is initialized.
     assert( !mName.empty() );
@@ -120,16 +120,16 @@ void PrimaryOutput::toDebugXML( const int aPeriod,
     XMLWriteClosingTag( "primary-output", aOut, aTabs );
 }
 
-void PrimaryOutput::completeInit( const string& aSectorName,
-                                  const string& aRegionName,
+void PrimaryOutput::completeInit( const gcamstr& aSectorName,
+                                  const gcamstr& aRegionName,
                                   const IInfo* aTechInfo,
                                   const bool aIsTechOperating )
 {
     // Primary outputs do not have any additional dependencies.
 }
 
-void PrimaryOutput::initCalc( const string& aRegionName,
-                              const string& aSectorName,
+void PrimaryOutput::initCalc( const gcamstr& aRegionName,
+                              const gcamstr& aSectorName,
                               const int aPeriod )
 {
     // Make sure the primary output has a name.
@@ -138,10 +138,16 @@ void PrimaryOutput::initCalc( const string& aRegionName,
     // Initialize the cached CO2 coefficient.
     mCachedCO2Coef.set( FunctionUtils::getCO2Coef( aRegionName, aSectorName, aPeriod ) );
     
-    mCachedMarket = scenario->getMarketplace()->locateMarket( mName, aRegionName, aPeriod );
+    // Ideally we only need to locate the market once, however during completeInit
+    // all markets may have not yet been set up.  So, instead we avoid re-lookups
+    // if the market has been found.  Unfortunately, this means if the market will
+    // never be found we will continue to try to look it up each model period.
+    if(!mCachedMarket.hasLocatedMarket()) {
+        mCachedMarket = scenario->getMarketplace()->locateMarket( mName, aRegionName );
+    }
 }
 
-void PrimaryOutput::postCalc( const string& aRegionName,
+void PrimaryOutput::postCalc( const gcamstr& aRegionName,
                               const int aPeriod )
 {
 }
@@ -151,7 +157,7 @@ void PrimaryOutput::scaleCoefficient( const double aScaler ){
 }
 
 IOutput::OutputList PrimaryOutput::calcPhysicalOutput( const double aPrimaryOutput,
-                                                       const string& aRegionName,
+                                                       const gcamstr& aRegionName,
                                                        const ICaptureComponent* aCaptureComponent,
                                                        const int aPeriod ) const
 {
@@ -162,7 +168,7 @@ IOutput::OutputList PrimaryOutput::calcPhysicalOutput( const double aPrimaryOutp
 }
 
 void PrimaryOutput::setPhysicalOutput( const double aPrimaryOutput,
-                                       const string& aRegionName,
+                                       const gcamstr& aRegionName,
                                        ICaptureComponent* aCaptureComponent,
                                        const int aPeriod )
 {
@@ -173,7 +179,7 @@ void PrimaryOutput::setPhysicalOutput( const double aPrimaryOutput,
     mPhysicalOutputs[ aPeriod ] = aPrimaryOutput;
 
     // Add the primary output to the marketplace.
-    mCachedMarket->addToSupply( mName, aRegionName, mPhysicalOutputs[ aPeriod ], aPeriod, false );
+    mCachedMarket.addToSupply( mName, aRegionName, mPhysicalOutputs[ aPeriod ], aPeriod, false );
 }
 
 double PrimaryOutput::getPhysicalOutput( const int aPeriod ) const {
@@ -184,7 +190,7 @@ double PrimaryOutput::getPhysicalOutput( const int aPeriod ) const {
     return mPhysicalOutputs[ aPeriod ];
 }
 
-double PrimaryOutput::getValue( const string& aRegionName,
+double PrimaryOutput::getValue( const gcamstr& aRegionName,
                                 const ICaptureComponent* aCaptureComponent,
                                 const int aPeriod ) const
 {
@@ -192,12 +198,12 @@ double PrimaryOutput::getValue( const string& aRegionName,
     return 0;
 }
 
-string PrimaryOutput::getOutputUnits( const string& aRegionName ) const {
-    return scenario->getMarketplace()->getMarketInfo( getName(), aRegionName, 0, true )
+gcamstr PrimaryOutput::getOutputUnits( const gcamstr& aRegionName ) const {
+    return mCachedMarket.getMarketInfo( getName(), aRegionName, 0, true )
         ->getString( "output-unit", false );
 }
 
-double PrimaryOutput::getEmissionsPerOutput( const string& aGHGName,
+double PrimaryOutput::getEmissionsPerOutput( const gcamstr& aGHGName,
                                              const int aPeriod ) const
 {
     assert( mCachedCO2Coef.isInited() );

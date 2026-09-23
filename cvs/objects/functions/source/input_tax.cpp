@@ -96,7 +96,6 @@ const string& InputTax::getXMLName() const{
 //! Constructor
 InputTax::InputTax()
 {
-    TechVectorParseHelper<Value>::setDefaultValue( Value( 1.0 ), mAdjustedCoefficients );
 }
 
 /*!
@@ -123,9 +122,6 @@ InputTax::InputTax( const InputTax& aOther )
     // Do not copy calibration values into the future
     // as they are only valid for one period.
     mName = aOther.mName;
-    
-    // copy keywords
-    mKeywordMap = aOther.mKeywordMap;
 }
 
 InputTax* InputTax::clone() const {
@@ -141,15 +137,14 @@ void InputTax::toDebugXML( const int aPeriod,
                                Tabs* aTabs ) const
 {
     XMLWriteOpeningTag ( getXMLNameStatic(), aOut, aTabs, mName );
-    XMLWriteElement( mAdjustedCoefficients[ aPeriod ], "current-coef", aOut, aTabs );
     XMLWriteElement( mPhysicalDemand[ aPeriod ], "physical-demand", aOut, aTabs );
     XMLWriteClosingTag( getXMLNameStatic(), aOut, aTabs );
 }
 
-void InputTax::completeInit( const string& aRegionName,
-                                 const string& aSectorName,
-                                 const string& aSubsectorName,
-                                 const string& aTechName,
+void InputTax::completeInit( const gcamstr& aRegionName,
+                                 const gcamstr& aSectorName,
+                                 const gcamstr& aSubsectorName,
+                                 const gcamstr& aTechName,
                                  const IInfo* aTechInfo )
 {
 
@@ -162,8 +157,8 @@ void InputTax::completeInit( const string& aRegionName,
     
 }
 
-void InputTax::initCalc( const string& aRegionName,
-                             const string& aSectorName,
+void InputTax::initCalc( const gcamstr& aRegionName,
+                             const gcamstr& aSectorName,
                              const bool aIsNewInvestmentPeriod,
                              const bool aIsTrade,
                              const IInfo* aTechInfo,
@@ -171,7 +166,6 @@ void InputTax::initCalc( const string& aRegionName,
 {
     // There must be a valid region name.
     assert( !aRegionName.empty() );
-    mAdjustedCoefficients[ aPeriod ] = 1.0;
 }
 
 void InputTax::copyParam( const IInput* aInput,
@@ -187,7 +181,7 @@ void InputTax::copyParamsInto( InputTax& aInput,
 }
 
 
-double InputTax::getCO2EmissionsCoefficient( const string& aGHGName,
+double InputTax::getCO2EmissionsCoefficient( const gcamstr& aGHGName,
                                              const int aPeriod ) const
 {
     return 0;
@@ -203,7 +197,7 @@ double InputTax::getCarbonContent( const int aPeriod ) const {
 }
 
 void InputTax::setPhysicalDemand( double aPhysicalDemand,
-                                     const string& aRegionName,
+                                     const gcamstr& aRegionName,
                                      const int aPeriod )
 {
 
@@ -212,8 +206,9 @@ void InputTax::setPhysicalDemand( double aPhysicalDemand,
 
     // If tax is shared based, then divide by sector output.
     // Check if marketInfo exists and has the "isShareBased" boolean.
-    if( marketInfo && marketInfo->hasValue( "isShareBased" ) ){
-        if( marketInfo->getBoolean( "isShareBased", true ) ){
+    static const gcamstr isShareKey("isShareBased");
+    if( marketInfo && marketInfo->hasValue( isShareKey ) ){
+        if( marketInfo->getBoolean( isShareKey, true ) ){
             // Each share is additive
             aPhysicalDemand/= marketplace->getDemand( mSectorName, aRegionName, aPeriod );
         }
@@ -228,10 +223,7 @@ void InputTax::setPhysicalDemand( double aPhysicalDemand,
 }
 
 double InputTax::getCoefficient( const int aPeriod ) const {
-    // Check that the coefficient has been initialized.
-    assert( mAdjustedCoefficients[ aPeriod ].isInited() );
-
-    return mAdjustedCoefficients[ aPeriod ];
+    return 1.0;
 }
 
 void InputTax::setCoefficient( const double aCoefficient,
@@ -240,14 +232,14 @@ void InputTax::setCoefficient( const double aCoefficient,
     // Do nothing.
 }
 
-double InputTax::getPrice( const string& aRegionName,
+double InputTax::getPrice( const gcamstr& aRegionName,
                               const int aPeriod ) const
 {
     // A high tax decreases demand.
     return scenario->getMarketplace()->getPrice( mName, aRegionName, aPeriod, true );
 }
 
-void InputTax::setPrice( const string& aRegionName,
+void InputTax::setPrice( const gcamstr& aRegionName,
                             const double aPrice,
                             const int aPeriod )
 {
@@ -270,9 +262,3 @@ double InputTax::getIncomeElasticity( const int aPeriod ) const {
 double InputTax::getPriceElasticity( const int aPeriod ) const {
     return 0;
 }
-
-double InputTax::getTechChange( const int aPeriod ) const
-{
-    return 0;
-}
-

@@ -49,6 +49,7 @@
 #include "functions/include/minicam_input.h"
 #include "util/base/include/value.h"
 #include "util/base/include/time_vector.h"
+#include "marketplace/include/cached_market.h"
 
 class Tabs;
 
@@ -68,15 +69,13 @@ class Tabs;
  *              - \c name MiniCAMInput::mName
  *          - Elements:
  *              - \c input-cost NonEnergyInput::mCost
- *              - \c tech-change NonEnergyInput::mTechChange
  *
  * \author Josh Lurz
  */
 class NonEnergyInput: public MiniCAMInput
 {
+    friend class BackupIntermittentTechnology;
     friend class IntermittentTechnology;
-    friend class SolarTechnology;
-    friend class WindTechnology;
 public:
     NonEnergyInput();
 
@@ -100,14 +99,14 @@ public:
     virtual void copyParamsInto( NonEnergyInput& aInput,
                                  const int aPeriod ) const;
 
-    virtual void completeInit( const std::string& aRegionName,
-                               const std::string& aSectorName,
-                               const std::string& aSubsectorName,
-                               const std::string& aTechName,
+    virtual void completeInit( const gcamstr& aRegionName,
+                               const gcamstr& aSectorName,
+                               const gcamstr& aSubsectorName,
+                               const gcamstr& aTechName,
                                const IInfo* aTechInfo );
     
-    virtual void initCalc( const std::string& aRegionName,
-                           const std::string& aSectorName,
+    virtual void initCalc( const gcamstr& aRegionName,
+                           const gcamstr& aSectorName,
                            const bool aIsNewInvestmentPeriod,
                            const bool aIsTrade,
                            const IInfo* aTechInfo,
@@ -116,17 +115,18 @@ public:
     double getPhysicalDemand( const int aPeriod ) const;
 
     void setPhysicalDemand( const double aPhysicalDemand,
-                            const std::string& aRegionName,
+                            const gcamstr& aRegionName,
                             const int aPeriod );
 
-    double getPrice( const std::string& aRegionName,
-                     const int aPeriod ) const;
+
+    virtual double getPrice( const gcamstr& aRegionName,
+                             const int aPeriod ) const;
     
-    virtual void setPrice( const std::string& aRegionName,
+    virtual void setPrice( const gcamstr& aRegionName,
                            const double aPrice,
                            const int aPeriod );
 
-    double getCO2EmissionsCoefficient( const std::string& aGHGName,
+    double getCO2EmissionsCoefficient( const gcamstr& aGHGName,
                                     const int aPeriod ) const;
 
     double getCoefficient( const int aPeriod ) const;
@@ -141,8 +141,6 @@ public:
     virtual double getIncomeElasticity( const int aPeriod ) const;
 
     virtual double getPriceElasticity( const int aPeriod ) const;
-
-    virtual double getTechChange( const int aPeriod ) const;
     
     virtual void doInterpolations( const int aYear, const int aPreviousYear,
                                    const int aNextYear, const IInput* aPreviousInput,
@@ -157,20 +155,12 @@ protected:
     DEFINE_DATA_WITH_PARENT(
         MiniCAMInput,
 
-        //! Cost of the non-energy input adjusted for the additional costs of the
-        //! capture component.
-        DEFINE_VARIABLE( ARRAY | STATE | NOT_PARSABLE, "adjusted-cost", mAdjustedCosts, objects::TechVintageVector<Value> ),
-
-        //! Coefficient for production or demand function. Coefficients are not
-        // read in and are initialized to 1, but can increase over time with
-        // technical change.
-        DEFINE_VARIABLE( ARRAY | NOT_PARSABLE, "adjusted-coef", mAdjustedCoefficients, objects::TechVintageVector<Value> ),
+        //! Cost of the non-energy input which may be different than mCost in rare instances where it is dynamically
+        //! calcuated such as resource production or backup costs for VRE.
+        DEFINE_VARIABLE( SIMPLE | STATE | NOT_PARSABLE, "adjusted-cost", mAdjustedCosts, Value ),
 
         //! Cost of the non-energy input.
-        DEFINE_VARIABLE( SIMPLE, "input-cost", mCost, Value ),
-
-        //! Input specific technical change.
-        DEFINE_VARIABLE( SIMPLE, "tech-change", mTechChange, Value )
+        DEFINE_VARIABLE( SIMPLE, "input-cost", mCost, Value )
     )
     
     void copy( const NonEnergyInput& aOther );
@@ -193,37 +183,57 @@ public:
 
     NonEnergyInput* clone() const;
 
-    virtual void completeInit( const std::string& aRegionName,
-                               const std::string& aSectorName,
-                               const std::string& aSubsectorName,
-                               const std::string& aTechName,
+    virtual void completeInit( const gcamstr& aRegionName,
+                               const gcamstr& aSectorName,
+                               const gcamstr& aSubsectorName,
+                               const gcamstr& aTechName,
                                const IInfo* aTechInfo );
 
-    virtual void initCalc( const std::string& aRegionName,
-                           const std::string& aSectorName,
+    virtual void initCalc( const gcamstr& aRegionName,
+                           const gcamstr& aSectorName,
                            const bool aIsNewInvestmentPeriod,
                            const bool aIsTrade,
                            const IInfo* aTechInfo,
                            const int aPeriod );
 
+    virtual double getPrice( const gcamstr& aRegionName,
+                     const int aPeriod ) const;
 
     virtual void setPhysicalDemand( const double aPhysicalDemand,
-                            const std::string& aRegionName,
+                            const gcamstr& aRegionName,
                             const int aPeriod );
+    
+    double calcAdjustedPrice(const double aCost,
+                             const gcamstr& aRegionName,
+                             const int aPeriod) const;
 
 protected:
     DEFINE_DATA_WITH_PARENT (
         NonEnergyInput,
                          
         //! The market name to which to add the capital investment value
-        DEFINE_VARIABLE( SIMPLE, "tracking-market", mTrackingMarketName, std::string ),
+        DEFINE_VARIABLE( SIMPLE, "tracking-market", mTrackingMarketName, gcamstr ),
 
-        //! A coefficient applied to the total levelized non-energy cost, this will encompase breaking out the fraction
-        //! of that total that was capital as well as dividing by the FCR to get the total capital value.
-        DEFINE_VARIABLE( SIMPLE, "capital-coef", mCapitalCoef, Value ),
+        //! A ratio applied to mCost to break out the fraction of that total that was capital
+        DEFINE_VARIABLE( SIMPLE, "capital-ratio", mCapitalRatio, Value ),
+                             
+        //! Technology specific cost of borrowing which could be higher for riskier technologies
+        //! This rate will be scaled by the relative change in the economy wide price of capital
+        //! to annualize capital costs
+        DEFINE_VARIABLE( SIMPLE, "interest-rate", mInterestRate, Value ),
+                             
+        //! The number of years over which to annualize payments to capital.
+        DEFINE_VARIABLE( SIMPLE, "payback-years", mPaybackYears, int ),
+
+        //! The derived overnight capital costs per output stored during completeInit to save computations
+        //! during World.calc.
+        DEFINE_VARIABLE( SIMPLE | NOT_PARSABLE, "overnight", mOvernightCap, Value ),
 
         //! A state variable to keep track of the capital investment value
         DEFINE_VARIABLE( SIMPLE | STATE | NOT_PARSABLE, "capital-value", mCapitalValue, Value ),
+                             
+        //! Any unit conversions which may be applied to ensure the units of mCapitalValue are billion 1975$ per timestep
+        DEFINE_VARIABLE( SIMPLE, "invest-unit-conversion", mInvestUnitConversion, Value ),
         
         // Note: the following are only needed if the technology does not explicitly vintage
                              
@@ -234,6 +244,10 @@ protected:
         //! back calculate a value for new investment
         DEFINE_VARIABLE( SIMPLE, "depreciation-rate", mDepreciationRate, Value )
     )
+    
+    //! A pre-located market which has been cahced from the marketplace to get
+    //! the price and add demands to.
+    CachedMarket mCachedMarket;
 
     // We need a flag to let us know if we are in a new vintage tech in which case we
     // need to calculate and add to market the capital investment value

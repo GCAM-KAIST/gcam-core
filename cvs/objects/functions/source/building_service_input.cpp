@@ -87,10 +87,10 @@ const string& BuildingServiceInput::getXMLReportingName() const {
     return getXMLNameStatic();
 }
 
-void BuildingServiceInput::completeInit( const string& aRegionName,
-                             const string& aSectorName,
-                             const string& aSubsectorName,
-                             const string& aTechName,
+void BuildingServiceInput::completeInit( const gcamstr& aRegionName,
+                             const gcamstr& aSectorName,
+                             const gcamstr& aSubsectorName,
+                             const gcamstr& aTechName,
                              const IInfo* aTechInfo)
 {
     // Indicate that this sector depends on the service this input represents.
@@ -102,8 +102,8 @@ void BuildingServiceInput::completeInit( const string& aRegionName,
                                                                       aRegionName );
 }
 
-void BuildingServiceInput::initCalc( const string& aRegionName,
-                         const string& aSectorName,
+void BuildingServiceInput::initCalc( const gcamstr& aRegionName,
+                         const gcamstr& aSectorName,
                          const bool aIsNewInvestmentPeriod,
                          const bool aIsTrade,
                          const IInfo* aTechInfo,
@@ -131,6 +131,16 @@ IInput* BuildingServiceInput::clone() const {
 void BuildingServiceInput::copy( const BuildingServiceInput& aInput ) {
     mName = aInput.mName;
     mServiceDemand = aInput.mServiceDemand;
+	mBiasAdderEn = aInput.mBiasAdderEn;
+    mCoalA = aInput.mCoalA;
+    mCoalK = aInput.mCoalK;
+    mCoalBase = aInput.mCoalBase;
+    mTradBioX = aInput.mTradBioX;
+    mTradBioY = aInput.mTradBioY;
+    mTradBioBase = aInput.mTradBioBase;
+    mServPriceBase = aInput.mServPriceBase;
+    mServBaseDens = aInput.mServBaseDens;
+	mCoef = aInput.mCoef;
 
     delete mSatiationDemandFunction;
     mSatiationDemandFunction = aInput.mSatiationDemandFunction->clone();
@@ -146,6 +156,16 @@ void BuildingServiceInput::toDebugXML( const int aPeriod, ostream& aOut, Tabs* a
     XMLWriteOpeningTag ( getXMLNameStatic(), aOut, aTabs, mName );
 
     XMLWriteElement( mServiceDemand[ aPeriod ], "service", aOut, aTabs );
+	XMLWriteElement(mBiasAdderEn[ aPeriod ], "bias-adder", aOut, aTabs);
+    XMLWriteElement(mCoalA, "A-coal", aOut, aTabs);
+    XMLWriteElement(mCoalK, "k-coal", aOut, aTabs);
+    XMLWriteElement(mCoalBase, "base-coal", aOut, aTabs);
+    XMLWriteElement(mTradBioX, "x-TradBio", aOut, aTabs);
+    XMLWriteElement(mTradBioY, "y-TradBio", aOut, aTabs);
+    XMLWriteElement(mTradBioBase, "base-TradBio", aOut, aTabs);
+    XMLWriteElement(mServPriceBase, "price", aOut, aTabs);
+    XMLWriteElement(mServBaseDens, "base-density", aOut, aTabs);
+	XMLWriteElement(mCoef, "coef", aOut, aTabs);
     XMLWriteElement( mServiceDensity[ aPeriod ], "service-density", aOut, aTabs );
 
     // write the closing tag.
@@ -160,6 +180,7 @@ double BuildingServiceInput::calcThermalLoad( const BuildingNodeInput* aBuilding
     return 1;
 }
 
+
 /*!
  * \brief Set the calculated service density for reporting.
  * \param aServiceDensity The calculated service density.
@@ -168,6 +189,7 @@ double BuildingServiceInput::calcThermalLoad( const BuildingNodeInput* aBuilding
 void BuildingServiceInput::setServiceDensity( const double aServiceDensity, const int aPeriod ) {
     mServiceDensity[ aPeriod ].set( aServiceDensity );
 }
+
 
 /*!
  * \brief Get the satiation demand function to be used in demand calculations.
@@ -178,7 +200,7 @@ SatiationDemandFunction* BuildingServiceInput::getSatiationDemandFunction() cons
 }
 
 //! Get the name of the input
-const string& BuildingServiceInput::getName() const {
+const gcamstr& BuildingServiceInput::getName() const {
     return mName;
 }
 
@@ -199,7 +221,7 @@ double BuildingServiceInput::getPhysicalDemand( const int aPeriod ) const {
 }
 
 //! Set Physical Demand.
-void BuildingServiceInput::setPhysicalDemand( double aPhysicalDemand, const string& aRegionName, const int aPeriod )
+void BuildingServiceInput::setPhysicalDemand( double aPhysicalDemand, const gcamstr& aRegionName, const int aPeriod )
 {
     // We are storing the results in the same vector as the calibration data
     // generally the calculated value should match however it may not if the
@@ -218,9 +240,55 @@ void BuildingServiceInput::setPhysicalDemand( double aPhysicalDemand, const stri
  * \param aPeriod Model period.
  * \return The coefficient.
 */
-double BuildingServiceInput::getCoefficient( const int aPeriod ) const {
+double BuildingServiceInput::getCoefficient(const int aPeriod) const {
     // Generic building services do not have coefficients.
     return 1;
+}
+
+double BuildingServiceInput::getCoef() const {
+	// Generic building services do not have coefficients.
+	return mCoef;
+}
+
+/*!
+ * \brief Get the coal coefficients and bias adder for service demand.
+  * \return The coefficient.
+ */
+
+double BuildingServiceInput::getCoalA() const {
+    return mCoalA;
+}
+
+double BuildingServiceInput::getCoalK() const {
+    return mCoalK;
+}
+
+double BuildingServiceInput::getCoalBase() const {
+    return mCoalBase;
+}
+
+double BuildingServiceInput::getTradBioX() const {
+    return mTradBioX;
+}
+
+double BuildingServiceInput::getTradBioY() const {
+    return mTradBioY;
+}
+
+double BuildingServiceInput::getTradBioBase() const {
+    return mTradBioBase;
+}
+
+double BuildingServiceInput::getServPriceBase() const {
+    return mServPriceBase;
+}
+
+double BuildingServiceInput::getServBaseDens() const {
+    return mServBaseDens;
+}
+
+double BuildingServiceInput::getBiasAdder(const int aPeriod) const {
+    return mBiasAdderEn[ aPeriod ];
 }
 
 /*! \brief Set the building service coefficient.
@@ -237,11 +305,11 @@ void BuildingServiceInput::setCoefficient( const double aCoefficient, const int 
  * \param aPeriod Period to find the price in.
  * \return The market or unadjusted price.
  */
-double BuildingServiceInput::getPrice( const string& aRegionName, const int aPeriod ) const {
+double BuildingServiceInput::getPrice( const gcamstr& aRegionName, const int aPeriod ) const {
     return scenario->getMarketplace()->getPrice( mName, aRegionName, aPeriod );
 }
 
-void BuildingServiceInput::setPrice( const string& aRegionName,
+void BuildingServiceInput::setPrice( const gcamstr& aRegionName,
                          const double aPrice,
                          const int aPeriod )
 {
@@ -252,7 +320,7 @@ void BuildingServiceInput::setPrice( const string& aRegionName,
 * \param aRegionName Name of the containing region.
 * \param aPeriod Model period.
 */
-double BuildingServiceInput::getPricePaid( const string& aRegionName, const int aPeriod ) const{
+double BuildingServiceInput::getPricePaid( const gcamstr& aRegionName, const int aPeriod ) const{
     return getPrice( aRegionName, aPeriod );
 }
 
@@ -273,3 +341,4 @@ void BuildingServiceInput::accept( IVisitor* aVisitor, const int aPeriod ) const
     aVisitor->startVisitBuildingServiceInput( this, aPeriod );
     aVisitor->endVisitBuildingServiceInput( this, aPeriod );
 }
+

@@ -14,8 +14,9 @@ module_socio_L102.GDP(command, ...)
 \value{
 Depends on \code{command}: either a vector of required inputs,
 a vector of output names, or (if \code{command} is "MAKE") all
-the generated outputs: \code{L102.gdp_mil90usd_Scen_R_Y}, \code{L102.pcgdp_thous90USD_Scen_R_Y}, \code{L102.gdp_mil90usd_GCAM3_R_Y}, \code{L102.gdp_mil90usd_GCAM3_ctry_Y}, \code{L102.pcgdp_thous90USD_GCAM3_R_Y}, \code{L102.pcgdp_thous90USD_GCAM3_ctry_Y}, \code{L102.PPP_MER_R}. The corresponding file in the
-original data system was \code{L102.GDP.R} (socioeconomics level1).
+the generated outputs: \code{L102.gdp_mil90usd_Scen_R_Y},
+\code{L102.pcgdp_thous90USD_Scen_R_Y}, \code{L102.pcgdp_thous90USD_ctry_Yh},
+\code{L102.PPP_MER_R}.
 }
 \description{
 Prepare historical and future GDP time series.  On the historical side, this
@@ -25,10 +26,8 @@ outputs include GDP, pcGDP, and the PPP-MER conversion factor, all tabulated
 by GCAM region.
 }
 \details{
-The scenarios generated include the SSPs and the gSSPs (SSPs modified by
-near-term IMF projections).  GDP outputs are in millions of 1990 USD, Market
-Exchange Rate (measured in 2010) is used for foreign currency.  Per-capita
-values are in thousands of 1990 USD.
+The scenarios generated include the SSPs.  GDP outputs are in millions of 1990 USD.
+Per-capita values are in thousands of 1990 USD.
 }
 \author{
 RPL March 2017

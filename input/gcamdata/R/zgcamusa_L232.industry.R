@@ -11,10 +11,11 @@
 #' the generated outputs: \code{L232.DeleteSupplysector_USAind}, \code{L232.DeleteFinalDemand_USAind},
 #' \code{L232.StubTechCalInput_indenergy_USA}, \code{L232.StubTechCalInput_indfeed_USA}, \code{L232.StubTechProd_industry_USA},
 #' \code{L232.StubTechCoef_industry_USA}, \code{L232.StubTechMarket_ind_USA}, \code{L232.StubTechSecMarket_ind_USA},
-#' \code{L232.BaseService_ind_USA}, \code{L232.Supplysector_ind_USA}, \code{L232.FinalEnergyKeyword_ind_USA}, \code{L232.BaseService_iron_steel},
+#' \code{L232.BaseService_ind_USA}, \code{L232.Supplysector_ind_USA}, \code{L232.FinalEnergyKeyword_ind_USA}, \code{L232.BaseService},
 #' \code{L232.SubsectorLogit_ind_USA}, \code{L232.SubsectorShrwtFllt_ind_USA}, \code{L232.SubsectorInterp_ind_USA},
 #' \code{L232.StubTech_ind_USA}, \code{L232.StubTechInterp_ind_USA}, \code{L232.PerCapitaBased_ind_USA}, \code{L232.Production_reg_imp},
-#' \code{L232.PriceElasticity_ind_USA}, \code{L232.IncomeElasticity_ind_gcam3_USA}, \code{L232.DeleteDomSubsector_USAind}, \code{L232.DeleteTraSubsector_USAind}.
+#' \code{L232.PriceElasticity_ind_USA}, \code{L232.DeleteDomSubsector_USAind}, \code{L232.DeleteTraSubsector_USAind},
+#' \code{L232.DeleteStubCalorieContent_USAind}.
 #' The corresponding file in the original data system was \code{L232.industry_USA.R} (gcam-usa level2).
 #' @details Prepare level 2 industry sector files for USA.
 #' @importFrom assertthat assert_that
@@ -42,23 +43,28 @@ module_gcamusa_L232.industry <- function(command, ...) {
              "L232.StubTechInterp_ind",
              "L232.PerCapitaBased_ind",
              "L232.PriceElasticity_ind",
-             "L232.IncomeElasticity_ind_gcam3",
              "L2323.Supplysector_iron_steel",
              "L2324.Supplysector_Off_road",
              "L2325.Supplysector_chemical",
              "L2326.Supplysector_aluminum",
+             "L2327.Supplysector_paper",
+             "L2328.Supplysector_food",
              "L2323.PerCapitaBased_iron_steel",
              "L2324.PerCapitaBased_Off_road",
              "L2325.PerCapitaBased_chemical",
              "L2326.PerCapitaBased_aluminum",
+             "L2327.PerCapitaBased_paper",
+             "L2328.StubCalorieContent",
              "L238.SubsectorAll_tra",
              "L238.SubsectorAll_reg",
              "L238.Production_reg_imp",
              "L238.Production_tra",
-             "L2323.BaseService_iron_steel"))
+             "L2323.BaseService_iron_steel",
+             "L2327.StubTechCalInput_paper_heat"))
   } else if(command == driver.DECLARE_OUTPUTS) {
     return(c("L232.DeleteSupplysector_USAind",
              "L232.DeleteFinalDemand_USAind",
+             "L232.DeleteStubCalorieContent_USAind",
              "L232.StubTechCalInput_indenergy_USA",
              "L232.StubTechCalInput_indfeed_USA",
              "L232.StubTechProd_industry_USA",
@@ -75,11 +81,10 @@ module_gcamusa_L232.industry <- function(command, ...) {
              "L232.StubTechInterp_ind_USA",
              "L232.PerCapitaBased_ind_USA",
              "L232.PriceElasticity_ind_USA",
-             "L232.IncomeElasticity_ind_gcam3_USA",
              "L232.DeleteTraSubsector_USAind",
              "L232.DeleteDomSubsector_USAind",
              "L232.Production_reg_imp",
-             "L232.BaseService_iron_steel"))
+             "L232.BaseService"))
   } else if(command == driver.MAKE) {
 
     # silence check package notes
@@ -111,20 +116,24 @@ module_gcamusa_L232.industry <- function(command, ...) {
     L232.StubTechInterp_ind <- get_data(all_data, "L232.StubTechInterp_ind", strip_attributes = TRUE)
     L232.PerCapitaBased_ind <- get_data(all_data, "L232.PerCapitaBased_ind", strip_attributes = TRUE)
     L232.PriceElasticity_ind <- get_data(all_data, "L232.PriceElasticity_ind", strip_attributes = TRUE)
-    L232.IncomeElasticity_ind_gcam3 <- get_data(all_data, "L232.IncomeElasticity_ind_gcam3", strip_attributes = TRUE)
     L2323.Supplysector_iron_steel <- get_data(all_data, "L2323.Supplysector_iron_steel", strip_attributes = TRUE)
     L2324.Supplysector_Off_road <- get_data(all_data, "L2324.Supplysector_Off_road", strip_attributes = TRUE)
     L2325.Supplysector_chemical <- get_data(all_data, "L2325.Supplysector_chemical", strip_attributes = TRUE)
     L2326.Supplysector_aluminum <- get_data(all_data, "L2326.Supplysector_aluminum", strip_attributes = TRUE)
+    L2327.Supplysector_paper <- get_data(all_data, "L2327.Supplysector_paper", strip_attributes = TRUE)
+    L2328.Supplysector_food <- get_data(all_data, "L2328.Supplysector_food", strip_attributes = TRUE)
     L2323.PerCapitaBased_iron_steel <- get_data(all_data, "L2323.PerCapitaBased_iron_steel", strip_attributes = TRUE)
     L2324.PerCapitaBased_Off_road <- get_data(all_data, "L2324.PerCapitaBased_Off_road", strip_attributes = TRUE)
     L2325.PerCapitaBased_chemical <- get_data(all_data, "L2325.PerCapitaBased_chemical", strip_attributes = TRUE)
     L2326.PerCapitaBased_aluminum <- get_data(all_data, "L2326.PerCapitaBased_aluminum", strip_attributes = TRUE)
+    L2327.PerCapitaBased_paper <- get_data(all_data, "L2327.PerCapitaBased_paper", strip_attributes = TRUE)
+    L2328.StubCalorieContent <- get_data(all_data, "L2328.StubCalorieContent", strip_attributes = TRUE)
     L238.SubsectorAll_tra <- get_data(all_data, "L238.SubsectorAll_tra", strip_attributes = TRUE)
     L238.SubsectorAll_reg <- get_data(all_data, "L238.SubsectorAll_reg", strip_attributes = TRUE)
     L238.Production_reg_imp <- get_data(all_data, "L238.Production_reg_imp", strip_attributes = TRUE)
     L238.Production_tra <- get_data(all_data, "L238.Production_tra", strip_attributes = TRUE)
     L2323.BaseService_iron_steel <- get_data(all_data, "L2323.BaseService_iron_steel", strip_attributes = TRUE)
+    L2327.StubTechCalInput_paper_heat <- get_data(all_data, "L2327.StubTechCalInput_paper_heat", strip_attributes = TRUE)
 
     #A_irnstl_RegionalTechnology_R_Y
     # ===================================================
@@ -139,21 +148,30 @@ module_gcamusa_L232.industry <- function(command, ...) {
       bind_rows(L2323.Supplysector_iron_steel,
                 L2324.Supplysector_Off_road,
                 L2325.Supplysector_chemical,
-                L2326.Supplysector_aluminum) %>%
+                L2326.Supplysector_aluminum,
+                L2327.Supplysector_paper,
+                L2328.Supplysector_food) %>%
       mutate(region = region) %>% # strip attributes from object
       filter(region == gcam.USA_REGION) %>%
       select(LEVEL2_DATA_NAMES[["DeleteSupplysector"]]) ->
-      L232.DeleteSupplysector_USAind  ## OUTPUT
+      L232.DeleteSupplysector_USAind
 
     # deleting energy final demand sectors in the full USA region
     L232.PerCapitaBased_ind %>%
       bind_rows(L2324.PerCapitaBased_Off_road,
                 L2325.PerCapitaBased_chemical,
-                L2326.PerCapitaBased_aluminum) %>%
+                L2326.PerCapitaBased_aluminum,
+                L2327.PerCapitaBased_paper) %>%
       mutate(region = region) %>% # strip attributes from object
       filter(region == gcam.USA_REGION) %>%
       select(LEVEL2_DATA_NAMES[["DeleteFinalDemand"]]) ->
       L232.DeleteFinalDemand_USAind  ## OUTPUT
+
+    # delete input of food processing into food demand (as having this input generates a demand for food processing)
+    L2328.StubCalorieContent %>%
+      filter(region == gcam.USA_REGION) %>%
+      select(c(LEVEL2_DATA_NAMES[["DeleteStubTechMinicamEnergyInput"]], "subsector0")) ->
+      L232.DeleteStubCalorieContent_USAind
 
     # deleting traded iron and steel subsector in the full USA region
     L238.SubsectorAll_tra %>%
@@ -191,6 +209,17 @@ module_gcamusa_L232.industry <- function(command, ...) {
                 by=c("region", "year"))%>%
       mutate(base.service=Net_Imports)%>%
       select(-Net_Imports)-> L232.BaseService_iron_steel
+
+    # we need to maintain the mass flows for wood pulp to match calibration mass flows
+    # even though the energy for the paper sector as been aggregated
+    L2327.StubTechCalInput_paper_heat %>%
+      filter(region == gcam.USA_REGION,
+             minicam.energy.input == "regional woodpulp for energy") %>%
+      select(region, energy.final.demand = minicam.energy.input, year, calibrated.value) %>%
+      group_by(region, energy.final.demand, year) %>%
+      summarize(base.service = sum(calibrated.value)) %>%
+      ungroup() ->
+      L232.BaseService_woodpulp
 
 
 
@@ -237,7 +266,6 @@ module_gcamusa_L232.industry <- function(command, ...) {
     L232.StubTechInterp_ind_USA <- industry_USA_processing(L232.StubTechInterp_ind)
     L232.PerCapitaBased_ind_USA <- industry_USA_processing(L232.PerCapitaBased_ind)
     L232.PriceElasticity_ind_USA <- industry_USA_processing(L232.PriceElasticity_ind)
-    L232.IncomeElasticity_ind_gcam3_USA <- industry_USA_processing(L232.IncomeElasticity_ind_gcam3)
 
     # get calibrated input of industrial energy use technologies, including cogen
     L132.in_EJ_state_indnochp_F %>%
@@ -335,7 +363,7 @@ module_gcamusa_L232.industry <- function(command, ...) {
     # ^^ covers only base years
 
     L232.StubTechCoef_industry_USA_base %>%
-      filter(year == max(MODEL_BASE_YEARS)) %>% select(-year) %>%
+      filter(year == MODEL_FINAL_BASE_YEAR) %>% select(-year) %>%
       repeat_add_columns(tibble(year = MODEL_FUTURE_YEARS)) ->
       L232.StubTechCoef_industry_USA_fut
     # ^^ future years copied from final base year
@@ -405,7 +433,9 @@ module_gcamusa_L232.industry <- function(command, ...) {
                      "L2323.Supplysector_iron_steel",
                      "L2324.Supplysector_Off_road",
                      "L2325.Supplysector_chemical",
-                     "L2326.Supplysector_aluminum") ->
+                     "L2326.Supplysector_aluminum",
+                     "L2327.Supplysector_paper",
+                     "L2328.Supplysector_food") ->
       L232.DeleteSupplysector_USAind
 
     L232.DeleteFinalDemand_USAind %>%
@@ -417,8 +447,17 @@ module_gcamusa_L232.industry <- function(command, ...) {
                      "L2323.PerCapitaBased_iron_steel",
                      "L2324.PerCapitaBased_Off_road",
                      "L2325.PerCapitaBased_chemical",
-                     "L2326.PerCapitaBased_aluminum") ->
+                     "L2326.PerCapitaBased_aluminum",
+                     "L2327.PerCapitaBased_paper") ->
       L232.DeleteFinalDemand_USAind
+
+    L232.DeleteStubCalorieContent_USAind %>%
+      add_title("USA food processing input into food demand") %>%
+      add_units("NA") %>%
+      add_comments("Generated by deselecting food processing input into food demand for the global US region") %>%
+      add_legacy_name("L232.DeleteStubCalorieContent_USAind") %>%
+      add_precursors("L2328.StubCalorieContent") ->
+      L232.DeleteStubCalorieContent_USAind
 
     L232.DeleteDomSubsector_USAind %>%
       add_title("USA domestic iron and steel table for industry") %>%
@@ -444,13 +483,13 @@ module_gcamusa_L232.industry <- function(command, ...) {
       add_precursors("L238.Production_reg_imp","L238.Production_tra") ->
       L232.Production_reg_imp
 
-    L232.BaseService_iron_steel %>%
-      add_title("USA regional iron and steel base-service by year") %>%
+    bind_rows(L232.BaseService_iron_steel, L232.BaseService_woodpulp) %>%
+      add_title("USA regional iron and steel and woodpulp base-service by year") %>%
       add_units("NA") %>%
-      add_comments("The regional iron and steel base service is re-calibrated to USA net imports for GCAM USA") %>%
-      add_legacy_name("L232.BaseService_iron_steel") %>%
-      add_precursors("L2323.BaseService_iron_steel") ->
-      L232.BaseService_iron_steel
+      add_comments("Maintain the balances for regional iron and steel / woodpulp for GCAM USA") %>%
+      add_precursors("L2323.BaseService_iron_steel",
+                     "L2327.StubTechCalInput_paper_heat") ->
+      L232.BaseService
 
     L232.StubTechCalInput_indenergy_USA %>%
       add_title("calibrated input of industrial energy use technologies (including cogen)") %>%
@@ -597,19 +636,10 @@ module_gcamusa_L232.industry <- function(command, ...) {
       add_precursors("L232.PriceElasticity_ind") ->
       L232.PriceElasticity_ind_USA
 
-    L232.IncomeElasticity_ind_gcam3_USA %>%
-      add_title("Income elasticity of industry - GCAM3") %>%
-      add_units("Unitless") %>%
-      add_comments("First calculate industrial output as the base-year industrial output times the GDP ratio raised to the income elasticity") %>%
-      add_comments("Then back out the appropriate income elasticities from industrial output") %>%
-      add_comments("Note lower income elasticities for SSP1 are hard-coded.") %>%
-      add_legacy_name("L232.IncomeElasticity_ind_gcam3_USA") %>%
-      add_precursors("L232.IncomeElasticity_ind_gcam3") ->
-      L232.IncomeElasticity_ind_gcam3_USA
-
 
     return_data(L232.DeleteSupplysector_USAind,
                 L232.DeleteFinalDemand_USAind,
+                L232.DeleteStubCalorieContent_USAind,
                 L232.StubTechCalInput_indenergy_USA,
                 L232.StubTechCalInput_indfeed_USA,
                 L232.StubTechProd_industry_USA,
@@ -626,11 +656,10 @@ module_gcamusa_L232.industry <- function(command, ...) {
                 L232.StubTechInterp_ind_USA,
                 L232.PerCapitaBased_ind_USA,
                 L232.PriceElasticity_ind_USA,
-                L232.IncomeElasticity_ind_gcam3_USA,
                 L232.DeleteDomSubsector_USAind,
                 L232.DeleteTraSubsector_USAind,
                 L232.Production_reg_imp,
-                L232.BaseService_iron_steel)
+                L232.BaseService)
   } else {
     stop("Unknown command")
   }

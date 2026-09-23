@@ -2,7 +2,7 @@
 
 #' module_gcamusa_L2232.electricity_FERC
 #'
-#' Generate GCAM-USA model inputs for electrcity trade sectors at the level of grid regions.
+#' Generate GCAM-USA model inputs for electricity trade sectors at the level of grid regions.
 #'
 #' @param command API command to execute
 #' @param ... other optional parameters, depending on command
@@ -118,7 +118,7 @@ module_gcamusa_L2232.electricity_FERC <- function(command, ...) {
     L2232.SubsectorShrwtFllt_USAelec %>%
       select(LEVEL2_DATA_NAMES[["Subsector"]]) %>%
       mutate(apply.to = "share-weight",
-             from.year = max(MODEL_BASE_YEARS),
+             from.year = MODEL_FINAL_BASE_YEAR,
              to.year = max(MODEL_YEARS),
              interpolation.function = "fixed") ->
       L2232.SubsectorInterp_USAelec
@@ -263,7 +263,7 @@ module_gcamusa_L2232.electricity_FERC <- function(command, ...) {
     L2232.SubsectorShrwtFllt_elec_FERC %>%
       select(LEVEL2_DATA_NAMES[["Subsector"]]) %>%
       mutate(apply.to = "share-weight",
-             from.year = max(MODEL_BASE_YEARS),
+             from.year = MODEL_FINAL_BASE_YEAR,
              to.year = max(MODEL_YEARS),
              interpolation.function = "fixed") ->
       L2232.SubsectorInterp_elec_FERC

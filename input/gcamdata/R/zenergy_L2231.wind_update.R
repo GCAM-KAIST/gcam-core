@@ -27,8 +27,8 @@ module_energy_L2231.wind_update <- function(command, ...) {
              FILE = "energy/NREL_onshore_energy",
              FILE = "energy/onshore_wind_grid_cost",
              FILE = "energy/NREL_wind_energy_distance_range",
-             "L113.globaltech_capital_ATB",
-             "L113.globaltech_OMfixed_ATB",
+             "L1233.globaltech_capital_ATB",
+             "L1233.globaltech_OMfixed_ATB",
              "L223.StubTechCapFactor_elec"))
   } else if(command == driver.DECLARE_OUTPUTS) {
     return(c("L2231.SmthRenewRsrcCurves_onshore_wind",
@@ -56,8 +56,8 @@ module_energy_L2231.wind_update <- function(command, ...) {
     GCAM_region_names <- get_data(all_data, "common/GCAM_region_names")
     fuel_energy_input <- get_data(all_data, "energy/mappings/fuel_energy_input")
     A20.wind_class_CFs <- get_data(all_data, "energy/A20.wind_class_CFs")
-    L113.globaltech_OMfixed_ATB <- get_data(all_data, "L113.globaltech_OMfixed_ATB")
-    L113.globaltech_capital_ATB <- get_data(all_data, "L113.globaltech_capital_ATB")
+    L1233.globaltech_OMfixed_ATB <- get_data(all_data, "L1233.globaltech_OMfixed_ATB", strip_attributes = TRUE)
+    L1233.globaltech_capital_ATB <- get_data(all_data, "L1233.globaltech_capital_ATB", strip_attributes = TRUE)
     NREL_wind_ctry <- get_data(all_data, "energy/mappings/NREL_wind_ctry")
     NREL_onshore_energy <- get_data(all_data, "energy/NREL_onshore_energy")
     onshore_wind_grid_cost <- get_data(all_data, "energy/onshore_wind_grid_cost")
@@ -67,7 +67,7 @@ module_energy_L2231.wind_update <- function(command, ...) {
     # ===================================================
     # Perform Computations
 
-    # First, map NREL data on resource potential by country to GCAM 32 regions, convert PWh to EJ
+    # First, map NREL data on resource potential by country to GCAM regions, convert PWh to EJ
     # Second, aggregate by GCAM region/ wind class
 
     L2231.onshore_wind_potential_EJ <- NREL_onshore_energy %>%
@@ -83,24 +83,21 @@ module_energy_L2231.wind_update <- function(command, ...) {
       ungroup() %>%
       filter(resource.potential.EJ != 0) #-> L2231.onshore_wind_potential_EJ
 
-    L113.globaltech_capital_ATB %>%
-      gather_years() %>%
+    L1233.globaltech_capital_ATB %>%
       filter(technology == "wind",
-             year == max(MODEL_BASE_YEARS)) %>%
-      distinct(value)-> L2231.onshore_wind_capital
-    L2231.onshore_wind_capital <- as.numeric(L2231.onshore_wind_capital)
+             year == MODEL_FINAL_BASE_YEAR) %>%
+      pull(capital.overnight)-> L2231.onshore_wind_capital
 
-    L113.globaltech_capital_ATB %>%
-      filter(technology == "wind") %>%
-      select(fixed.charge.rate) -> L2231.onshore_wind_fcr
-    L2231.onshore_wind_fcr <- as.numeric(L2231.onshore_wind_fcr)
-
-    L113.globaltech_OMfixed_ATB %>%
-      gather_years() %>%
+    L1233.globaltech_capital_ATB %>%
       filter(technology == "wind",
-             year == max(MODEL_BASE_YEARS)) %>%
-      distinct(value)-> L2231.onshore_wind_OMfixed
-    L2231.onshore_wind_OMfixed <- as.numeric(L2231.onshore_wind_OMfixed)
+             year == MODEL_FINAL_BASE_YEAR) %>%
+      mutate(fixed.charge.rate = calc_fixed_charge_rate(interest.rate, payback.years)) %>%
+      pull(fixed.charge.rate) -> L2231.onshore_wind_fcr
+
+    L1233.globaltech_OMfixed_ATB %>%
+      filter(technology == "wind",
+             year == MODEL_FINAL_BASE_YEAR) %>%
+      pull(OM.fixed)-> L2231.onshore_wind_OMfixed
 
     L2231.onshore_wind_potential_EJ %>%
       left_join_error_no_match(A20.wind_class_CFs, by = c("wind_class")) %>%
@@ -161,6 +158,21 @@ module_energy_L2231.wind_update <- function(command, ...) {
                                energy.DIGITS_MAX_SUB_RESOURCE)) %>%
       select(region, mid.price) -> L2231.mid.price
 
+    # Add mid.price for regions with only one price point
+    (L2231.onshore_wind_curve %>%
+        dplyr::count(region) %>%
+        dplyr::filter(n==1))$region %>%
+      unique()-> L2231.onshore_wind_curve_single_regions
+
+    # Set mid.price to available price
+    L2231.onshore_wind_curve %>%
+      dplyr::filter(region %in% L2231.onshore_wind_curve_single_regions) %>%
+      dplyr::select(region, mid.price = price)-> L2231.mid.price_singleprice
+
+    # Combine with L2231.mid.price
+    L2231.mid.price %>%
+      dplyr::bind_rows(L2231.mid.price_singleprice) -> L2231.mid.price
+
     L2231.onshore_wind_curve %>%
       left_join_error_no_match(L2231.mid.price, by = c("region")) -> L2231.onshore_wind_curve
 
@@ -200,10 +212,9 @@ module_energy_L2231.wind_update <- function(command, ...) {
     # Thus, we calculate model input parameter techChange (which is the reduction per year) as 1-a'^(1/5)
 
     # First, calculate capital cost over time for "wind_offshore" technology
-    L113.globaltech_capital_ATB %>%
+    L1233.globaltech_capital_ATB %>%
       filter(technology == "wind") %>%
-      fill_exp_decay_extrapolate(c(MODEL_BASE_YEARS, MODEL_FUTURE_YEARS)) %>%
-      rename(capital.overnight = value, intermittent.technology = technology) -> L2231.onshore_wind_cap_cost
+      rename(intermittent.technology = technology) -> L2231.onshore_wind_cap_cost
 
     # Second, calculate technological change
     L2231.onshore_wind_cap_cost %>%
@@ -220,7 +231,7 @@ module_energy_L2231.wind_update <- function(command, ...) {
              tech.change = round(abs(1 - (tech.change.period) ^ ( 1 / time.change)), energy.DIGITS_TECHCHANGE)) %>%
       select(year, tech.change) %>%
       filter(!is.na(tech.change),
-             year > max(MODEL_BASE_YEARS)) -> L2231.TechChange_onshore_wind
+             year > MODEL_FINAL_BASE_YEAR) -> L2231.TechChange_onshore_wind
 
     # Calculate capacity factor for all GCAM regions
     L223.StubTechCapFactor_elec %>%
@@ -331,7 +342,11 @@ module_energy_L2231.wind_update <- function(command, ...) {
       add_units("Unitless") %>%
       add_comments("Resource curve and prices for onshore wind by region") %>%
       add_legacy_name("L2231.SmthRenewRsrcCurves_onshore_wind") %>%
-      add_precursors( "common/iso_GCAM_regID", "common/GCAM_region_names", "energy/mappings/fuel_energy_input",  "energy/A20.wind_class_CFs", "L113.globaltech_capital_ATB", "L113.globaltech_OMfixed_ATB", "energy/NREL_onshore_energy", "L223.StubTechCapFactor_elec") ->
+      add_precursors( "common/iso_GCAM_regID", "common/GCAM_region_names",
+                      "energy/mappings/fuel_energy_input",  "energy/A20.wind_class_CFs",
+                      "L1233.globaltech_capital_ATB", "L1233.globaltech_OMfixed_ATB",
+                      "energy/NREL_onshore_energy", "energy/mappings/NREL_wind_ctry",
+                      "L223.StubTechCapFactor_elec") ->
       L2231.SmthRenewRsrcCurves_onshore_wind
 
     L2231.StubTechCapFactor_onshore_wind %>%

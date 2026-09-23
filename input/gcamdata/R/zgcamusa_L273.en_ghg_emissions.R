@@ -3,7 +3,7 @@
 #' module_gcamusa_L273.en_ghg_emissions
 #'
 #' Define non-CO2 GHG emissions for GCAM-USA states, including 1. CH4 and N2O in refinery,
-#' buildings, N fertilizer, industrial energy use; 2. F-gases in cooling and power
+#' buildings, ammonia, industrial energy use; 2. F-gases in cooling and power
 #' transmission; 3. MACs for F-gases
 #'
 #' @param command API command to execute
@@ -11,7 +11,7 @@
 #' @return Depends on \code{command}: either a vector of required inputs,
 #' a vector of output names, or (if \code{command} is "MAKE") all
 #' the generated outputs: \code{L273.en_ghg_tech_coeff_USA}, \code{L273.en_ghg_emissions_USA}, \code{L273.out_ghg_emissions_USA},
-#' and \code{L273.MAC_higwp_USA}. The corresponding file in the
+#' \code{L273.res_ghg_emfact_USA}, \code{L273.MAC_higwp_USA}, and \code{L273.ResReadInControl_ghg_res_USA}. The corresponding file in the
 #' original data system was \code{L273.en_ghg_emissions_USA.R} (gcam-usa level2).
 #' @details KALYN MTB YO
 #' @importFrom assertthat assert_that
@@ -27,6 +27,7 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
              "L123.out_EJ_state_ownuse_elec",
              "L1322.in_EJ_state_Fert_Yh",
              "L201.en_ghg_emissions",
+             "L102.res_ghg_tgej_USA",
              "L241.nonco2_tech_coeff",
              "L241.hfc_all",
              "L241.pfc_all",
@@ -36,7 +37,6 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
              "L222.StubTech_en_USA",
              "L232.StubTechCalInput_indenergy_USA",
              "L244.StubTechCalInput_bld_gcamusa",
-             "L244.GlobalTechEff_bld",
              # the following files to be able to map in the input.name to
              # use for the input-driver
              FILE = "energy/A22.globaltech_input_driver",
@@ -46,14 +46,17 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
              # use for the input-driver for res + ind
              FILE = "energy/calibrated_techs",
              FILE = "gcam-usa/calibrated_techs_bld_usa",
-             FILE = UCD_tech_map_name))
+             FILE = UCD_tech_map_name,
+             FILE = "gcam-usa/emissions/inventory_fgas"))
   } else if(command == driver.DECLARE_OUTPUTS) {
     return(c("L273.en_ghg_tech_coeff_USA",
              "L273.en_ghg_emissions_USA",
+             "L273.res_ghg_emfact_USA",
              "L273.out_ghg_emissions_USA",
              "L273.MAC_higwp_USA",
              "L273.MAC_higwp_TC_USA",
-             "L273.MAC_higwp_phaseInTime_USA"))
+             "L273.MAC_higwp_phaseInTime_USA",
+             "L273.ResReadInControl_ghg_res_USA"))
   } else if(command == driver.MAKE) {
 
     all_data <- list(...)[[1]]
@@ -73,6 +76,7 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
     L123.out_EJ_state_ownuse_elec <- get_data(all_data, "L123.out_EJ_state_ownuse_elec", strip_attributes = TRUE)
     L1322.in_EJ_state_Fert_Yh <- get_data(all_data, "L1322.in_EJ_state_Fert_Yh", strip_attributes = TRUE)
     L201.en_ghg_emissions <- get_data(all_data, "L201.en_ghg_emissions", strip_attributes = TRUE)
+    L102.res_ghg_tgej_USA <- get_data(all_data, "L102.res_ghg_tgej_USA", strip_attributes = TRUE)
     L241.nonco2_tech_coeff <- get_data(all_data, "L241.nonco2_tech_coeff", strip_attributes = TRUE)
     L241.hfc_all <- get_data(all_data, "L241.hfc_all", strip_attributes = TRUE)
     L241.pfc_all <- get_data(all_data, "L241.pfc_all", strip_attributes = TRUE)
@@ -82,7 +86,7 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
     L222.StubTech_en_USA <- get_data(all_data, "L222.StubTech_en_USA", strip_attributes = TRUE)
     L232.StubTechCalInput_indenergy_USA <- get_data(all_data, "L232.StubTechCalInput_indenergy_USA", strip_attributes = TRUE)
     L244.StubTechCalInput_bld_gcamusa <- get_data(all_data, "L244.StubTechCalInput_bld_gcamusa", strip_attributes = TRUE)
-    L244.GlobalTechEff_bld <- get_data(all_data, "L244.GlobalTechEff_bld", strip_attributes = TRUE)
+    inventory_fgas <- get_data(all_data, "gcam-usa/emissions/inventory_fgas", strip_attributes = TRUE)
 
     # make a complete mapping to be able to look up with sector + subsector + tech the
     # input name to use for an input-driver
@@ -135,10 +139,66 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
 
     # clean up refining emission coefficients and organize
     L273.ref_ghg_tech_coeff_USA %>%
-      mutate(emiss.coeff = round(emiss.coeff, emissions.DIGITS_EMISSIONS)) %>%
+      mutate(emiss.coef = round(emiss.coeff, emissions.DIGITS_EMISSIONS)) %>%
       arrange(region, supplysector, subsector, stub.technology, year, Non.CO2) %>%
       left_join_error_no_match(EnTechInputMap %>% select(-supplysector), by = c("subsector", "stub.technology"))->
       L273.en_ghg_tech_coeff_USA
+
+    # # Resource production emissions
+    # # L273.res_ghg_emfact_USA: Emissions coefficients of N20, CH4, and fugitive CO2 by U.S. state
+    L102.res_ghg_tgej_USA %>%
+      filter(year %in% MODEL_BASE_YEARS) %>%
+      # rename CO2 to CO2_FUG and add technology level (same as subresource)
+      mutate(ghg = case_when(ghg == "CO2" ~ "CO2_FUG",
+                             T ~ ghg),
+             resource.reserve.technology = reserve.subresource,
+             # convert Tg CO2 to MTC for CO2_FUG
+             emiss.coef = case_when(ghg == "CO2_FUG" ~ emfact/emissions.CONV_C_CO2,
+                                    T ~ emfact),
+             emiss.units = case_when(ghg == "CO2_FUG" ~ "MTC",
+                                     T ~ "Tg")) %>%
+      select(region, resource, subresource = reserve.subresource, technology = resource.reserve.technology,
+             year, Non.CO2 = ghg, emiss.coef, emiss.units) ->
+      L273.res_ghg_emfact_USA
+
+    # comment below copied from zemissions_L201.en_nonco2.R.....................
+
+    # Resources have vintaging going on in the historical years.
+    # The above emissions coefficients are the coefficients across vintages
+    # in the given model year.  The best way to ensure the correct "total"
+    # emissions factor across vintages is realized is to use the ReadInControl
+    # to change the coefficients by vintage for all vintages.  Note given the way
+    # the C++ operates we need to read in the "base" EmissCoef table and then the
+    # same values in the ReadInControl table all read into the first model period
+    # vintage.  We will also need to "fillout" the value in the final calibration
+    # to the future model periods otherwise the vintage would revert back to the
+    # value in the EmissCoef table.  Finally to turn "off" any adjustments made to
+    # new vintages in future model periods we must have ReadInControl with values of
+    # zero starting in the first future model period.
+
+
+    # L273.ResReadInControl_ghg_res:
+    # Vintage adjustments for GHG emissions from resource production in all states
+    L273.res_ghg_emfact_USA %>%
+      # copy the final historical year value to the future model periods
+      bind_rows(L273.res_ghg_emfact_USA %>%
+                  filter(year == MODEL_FINAL_BASE_YEAR) %>%
+                  select(-year) %>%
+                  repeat_add_columns(tibble(year = MODEL_FUTURE_YEARS))) %>%
+      rename(future.emiss.coeff.year = year) %>%
+      mutate(year = MODEL_BASE_YEARS[1],
+             future.emiss.coeff.name = "vintage_adjust") %>%
+      select(LEVEL2_DATA_NAMES[["ResReadInControl"]]) ->
+      L273.ResReadInControl_ghg_res_USA
+
+    # turn "off" vintage adjustments for future year vintages
+    L273.ResReadInControl_ghg_res_USA %>%
+      mutate(year = MODEL_FUTURE_YEARS[1],
+             emiss.coef = 0.0) %>%
+      bind_rows(L273.ResReadInControl_ghg_res_USA) ->
+      L273.ResReadInControl_ghg_res_USA
+
+
 
     # 2c. Input Emissions
     # L273.en_ghg_emissions_USA: Calibrated input emissions of N2O and CH4 by U.S. state
@@ -148,7 +208,15 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
       spread(Non.CO2, input.emissions) %>%
       ###NOTE: emissions from coal use in commercial buildings "other" category does not have an equivalent representation
       #in the fifty state data. For now move these emissions over to comm heating
-      mutate(supplysector = if_else(grepl("comm",supplysector) & subsector == "coal","comm heating", supplysector)) ->
+      mutate(supplysector = if_else(grepl("comm",supplysector) & subsector == "coal","comm heating", supplysector),
+             ###NOTE: income deciles and modern/coal/TradBio distinctions are dropped in GCAM-USA
+             supplysector = sub(" TradBio_d[0-9]{1,2}$| modern_d[0-9]{1,2}$| coal_d[0-9]{1,2}$", "", supplysector),
+             supplysector = if_else(grepl("resid others",supplysector),"resid others",supplysector)) %>%
+      # add up the supplysectors, required due to multiple consumers
+      group_by(region,supplysector,subsector,stub.technology,year,input.name) %>%
+      summarise(CH4 = sum(CH4),
+                N2O = sum(N2O)) %>%
+      ungroup()->
       en_ghg_emissions_USA
 
     # Organize the state fuel input data
@@ -203,37 +271,20 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
       select(region, supplysector, subsector, stub.technology, year, CH4, N2O) ->
       en_ghg_emissions_state
 
-    # Buildings: First subset the heating and cooling demands
-    L244.StubTechCalInput_bld_gcamusa %>%
-      filter(year %in% en_ghg_emissions_USA$year & subsector %in% en_ghg_emissions_USA$subsector) %>%
-      # Add a sector column to match with the emissions data
-      mutate(sector = if_else(supplysector %in% c("comm heating", "comm cooling", "resid heating", "resid cooling"),
-                              supplysector,if_else(grepl("comm", supplysector),"comm others","resid others"))) %>%
-      select(region, sector, supplysector, subsector, stub.technology, year, calibrated.value) ->
-      bld_fuel_input_state
+    # Buildings: multiply nation-level emissions by state-wise share
+    L273.BldStateTechShares <- L244.StubTechCalInput_bld_gcamusa %>%
+      group_by(supplysector, subsector, stub.technology, year) %>%
+      mutate(state_share = calibrated.value / sum(calibrated.value)) %>%
+      ungroup() %>%
+      select(region, supplysector, subsector, stub.technology, year, state_share)
 
-    # Create aggregate table for total nation fuel inputs by emissions category
-    bld_fuel_input_state %>%
-      group_by(sector, subsector, year) %>%
-      summarise(calibrated.value = sum(calibrated.value)) ->
-      bld_fuel_input_agg
-
-    # Compute shares of national and sector total for each fuel input technology
-    bld_fuel_input_state %>%
-      left_join_error_no_match(bld_fuel_input_agg, by = c("sector", "subsector", "year")) %>%
-      mutate(share = calibrated.value.x / calibrated.value.y) %>%
-      # some zero divided zero case
-      replace_na(list(share = 0)) %>%
-      left_join_error_no_match(en_ghg_emissions_USA %>%
-                                 select("supplysector", "subsector", "year", "CH4", "N2O") %>%
-                                 group_by(supplysector, subsector, year) %>%
-                                 summarise(CH4 = sum(CH4), N2O = sum(N2O)) %>%
-                                 ungroup(),
-                               by = c("sector" = "supplysector","subsector","year")) %>%
-      mutate(CH4 = share * CH4,
-             N2O = share * N2O) %>%
-      select(region, supplysector, subsector, stub.technology, year, CH4, N2O) ->
-      bld_ghg_emissions_state
+    # This method drops emissions from technologies not considered in GCAM-USA (e.g., coal)
+    bld_ghg_emissions_state <- en_ghg_emissions_USA %>%
+      select(-region) %>%
+      inner_join(L273.BldStateTechShares, by = c("supplysector", "subsector", "stub.technology", "year")) %>%
+      mutate(CH4 = CH4 * state_share,
+             N2O = N2O * state_share) %>%
+      select(region, supplysector, subsector, stub.technology, year, CH4, N2O)
 
     # Combine the buildings and other energy input emissions tables and convert to long format
     en_ghg_emissions_state %>%
@@ -263,9 +314,6 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
 
     # SF6 Emissions from electricity own use
     L241.hfc_pfc_elec_ownuse <- filter(L241.hfc_pfc_USA, supplysector == "electricity_net_ownuse")
-
-    # HFC Emissions from building cooling
-    L241.hfc_pfc_bld <- filter(L241.hfc_pfc_USA, supplysector %in% c("resid cooling","comm cooling"))
 
     # Electricity net own use output by state
     L123.out_EJ_state_ownuse_elec %>%
@@ -304,48 +352,88 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
       rename(region = grid_region) ->
       L273.out_ghg_emissions_elec_ownuse
 
-    # To compute building service output, multiply the building energy use by efficiency
-    L244.StubTechCalInput_bld_gcamusa %>%
-      # use inner_join to keep the cooling sectors defined in L241.hfc_pfc_bld
-      inner_join(L241.hfc_pfc_bld %>%
-                   select("supplysector","subsector","year") %>%
-                   distinct(),
-                 by = c("supplysector","subsector","year")) %>%
-      left_join_error_no_match(L244.GlobalTechEff_bld, by = c("supplysector" = "sector.name",
-                                                              "subsector" = "subsector.name",
-                                                              "stub.technology" = "technology",
-                                                              "year")) %>%
-      mutate(service_output = calibrated.value * efficiency) %>%
-      select(region, supplysector, subsector, stub.technology, year, service_output) ->
-      L244.output_bld_cool
+    # HFC emissions will be assigned to buildings technologies based on the national distribution
+    # from the US GHG inventory, and assigned to states based on electricity consumption from these technologies
+    #TODO: This inventory also contains emissions for mobile sources, which should ultimately be assigned to transportation
 
-    # Compute aggregate USA building cooling service output for each subsector
-    L244.output_bld_cool %>%
-      group_by(supplysector, subsector, year) %>%
-      summarise(service_output = sum(service_output)) ->
-      L244.output_bld_cool_agg
+    # HFC Emissions from building cooling
+    L241.hfc_pfc_bld <- L241.hfc_pfc_USA %>%
+      filter(grepl("resid|comm", supplysector)) %>%
+      # aggregate emissions by year, for buildings as a whole
+      group_by(year, Non.CO2) %>%
+      summarise(input.emissions = sum(input.emissions)) %>%
+      ungroup()
 
-    # Match shares onto service output table
-    L244.output_bld_cool %>%
-      # We do not expect a 1:1 match here so use left_join.
-      left_join(L244.output_bld_cool_agg %>%
-                  select(supplysector, subsector, year, service_output2 = service_output),
-                by = c("supplysector", "subsector", "year")) %>%
-      mutate(share = service_output / service_output2) %>%
-      # Add column identifying pollutant
-      repeat_add_columns(tibble("Non.CO2" = unique(L241.hfc_pfc_bld$Non.CO2))) %>%
-      # Match on output emissions, sharing out to states and technologies
-      left_join(L241.hfc_pfc_bld %>%
-                  select("supplysector", "subsector", "year", "Non.CO2", "input.emissions"),
-                by = c("supplysector", "subsector", "year", "Non.CO2")) %>%
-      mutate(output.emissions = share * input.emissions) %>%
-      select("region", "supplysector", "subsector", "stub.technology", "year", "Non.CO2", "output.emissions") ->
-      L273.out_ghg_emissions_bld_cool
+    # HFC distribution between commercial and residential refrigeration and A/C
+    HFC_inventory_bld_dist <- inventory_fgas %>%
+      # make dataframe long
+      gather_years() %>%
+      # filter for GCAM base years and relevant sectors
+      filter(year %in% MODEL_BASE_YEARS,
+             Sector %in% c("Commercial Refrigeration", "Domestic Refrigeration", "Residential Stationary Air Conditioning",
+                           "Commercial Stationary Air Conditioning")) %>%
+      # rename columns to match GCAM names
+      mutate(Sector = gsub("Commercial Stationary Air Conditioning", "comm cooling", Sector),
+             Sector = gsub("Commercial Refrigeration", "comm refrigeration", Sector),
+             Sector = gsub("Residential Stationary Air Conditioning", "resid cooling", Sector),
+             Sector = gsub("Domestic Refrigeration", "resid refrigerators", Sector)) %>%
+      # calculate shares for each sector
+      group_by(year) %>%
+      mutate(value = value/(sum(value))) %>%
+      ungroup() %>%
+      # replace NAs with 0
+      dplyr::mutate_if(is.numeric, ~if_else(is.nan(.), 0, .))
+
+      # add in 1975, using 1990 values, if it does not exist
+    if(!any(HFC_inventory_bld_dist$year == 1975)) {
+      # Find the minimum year in the dataframe
+      min_year <- min(HFC_inventory_bld_dist$year)
+
+      # Copy values from the minimum year to create new rows for 1975
+      df_1975 <- HFC_inventory_bld_dist %>%
+        filter(year == min_year) %>%
+        mutate(year = 1975)
+
+      # Bind the new rows for 1975 to the original dataframe
+      HFC_inventory_bld_dist <- bind_rows(HFC_inventory_bld_dist, df_1975)
+    }
+
+
+    # Distribute the emissions using these shares
+    HFC_bld_dist_emissions <- L241.hfc_pfc_bld %>%
+      # rows in dataframe change because we are matching multiple entries with emissions shares to single entries of emissions
+      left_join(HFC_inventory_bld_dist, by=c("year"), relationship = "many-to-many") %>%
+      # distribute emissions to each sector/technology based on shares
+      mutate(input.emissions = input.emissions*value) %>%
+      # removing columns no longer needed
+      select(-c("value"))
+
+    # Distribute national emissions to states and technologies based on electricity consumption
+      L273.out_ghg_emissions_bld_cool <- L244.StubTechCalInput_bld_gcamusa %>%
+        filter(supplysector %in% (HFC_bld_dist_emissions$Sector),
+               subsector == "electricity") %>%
+        # create a column that does not distinguish between high efficiency appliances
+        mutate(agg_tech = stub.technology,
+               agg_tech = gsub(" hi-eff", "", agg_tech)) %>%
+        # calculate shares
+        group_by(supplysector, subsector, agg_tech, year) %>%
+        mutate(sum_elec = sum(calibrated.value)) %>%
+        ungroup() %>%
+        mutate(tech_elec_share = calibrated.value/sum_elec) %>%
+        # bring in emissions. Rows in the dataframe will change because we are bringing multiple pollutants in
+        left_join(HFC_bld_dist_emissions, by = c("supplysector" = "Sector", "year"), relationship = "many-to-many") %>%
+        # distribute emissions to states and technologies
+        mutate(input.emissions = input.emissions * tech_elec_share) %>%
+        # select columns for final table
+        select(c("region", "supplysector", "subsector", "stub.technology", "year", "Non.CO2", "input.emissions")) %>%
+        rename(output.emissions = input.emissions) %>%
+        na.omit()
 
     #Combine output emissions into one table and organize
     bind_rows(L273.out_ghg_emissions_elec_ownuse,
               L273.out_ghg_emissions_bld_cool) %>%
-      arrange(Non.CO2, supplysector) ->
+      arrange(Non.CO2, supplysector) %>%
+      rename(input.emissions = output.emissions)->
       L273.out_ghg_emissions_USA
 
     # 2e. MAC curves
@@ -423,9 +511,16 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
                      "energy/A25.globaltech_input_driver",
                      "L222.StubTech_en_USA",
                      "L232.StubTechCalInput_indenergy_USA",
-                     "L244.StubTechCalInput_bld_gcamusa",
-                     "L244.GlobalTechEff_bld") ->
+                     "L244.StubTechCalInput_bld_gcamusa") ->
       L273.en_ghg_tech_coeff_USA
+
+    L273.res_ghg_emfact_USA %>%
+      add_title("GHG emissions coefficients for fossil resources in U.S. states") %>%
+      add_units("NA") %>%
+      add_comments("Write the emissions coefficients from the subresource level to the resource level") %>%
+      add_legacy_name("L273.res_ghg_emfact_USA") %>%
+      add_precursors("L102.res_ghg_tgej_USA") ->
+      L273.res_ghg_emfact_USA
 
     L273.en_ghg_emissions_USA %>%
       add_title("Calibrated input emissions of N2O and CH4 by U.S. state") %>%
@@ -445,8 +540,7 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
                      "L252.MAC_higwp",
                      "L222.StubTech_en_USA",
                      "L232.StubTechCalInput_indenergy_USA",
-                     "L244.StubTechCalInput_bld_gcamusa",
-                     "L244.GlobalTechEff_bld") ->
+                     "L244.StubTechCalInput_bld_gcamusa") ->
       L273.en_ghg_emissions_USA
 
     L273.out_ghg_emissions_USA %>%
@@ -465,8 +559,9 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
                      "L222.StubTech_en_USA",
                      "L232.StubTechCalInput_indenergy_USA",
                      "L244.StubTechCalInput_bld_gcamusa",
-                     "L244.GlobalTechEff_bld") ->
+                     "gcam-usa/emissions/inventory_fgas") ->
       L273.out_ghg_emissions_USA
+
 
     L273.MAC_higwp_USA %>%
       add_title("Abatement curves for the HFCs and PFCs in all U.S. states") %>%
@@ -483,8 +578,7 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
                      "L252.MAC_higwp",
                      "L222.StubTech_en_USA",
                      "L232.StubTechCalInput_indenergy_USA",
-                     "L244.StubTechCalInput_bld_gcamusa",
-                     "L244.GlobalTechEff_bld") ->
+                     "L244.StubTechCalInput_bld_gcamusa") ->
       L273.MAC_higwp_USA
 
     L273.MAC_higwp_TC_USA %>%
@@ -505,9 +599,18 @@ module_gcamusa_L273.en_ghg_emissions <- function(command, ...) {
       add_precursors("L252.MAC_higwp_phaseInTime") ->
       L273.MAC_higwp_phaseInTime_USA
 
+    L273.ResReadInControl_ghg_res_USA %>%
+      add_title("Vintaging adjustments for GHG emission factors from resource production") %>%
+      add_units("Tg/EJ") %>%
+      add_comments("Used to make per vintage adjustments to ensure overall emissions") %>%
+      add_comments("factors match the ones in L273.res_ghg_emfact_USA in historical years") %>%
+      same_precursors_as(L273.res_ghg_emfact_USA) ->
+      L273.ResReadInControl_ghg_res_USA
 
-    return_data(L273.en_ghg_tech_coeff_USA, L273.en_ghg_emissions_USA, L273.out_ghg_emissions_USA,
-                L273.MAC_higwp_USA, L273.MAC_higwp_TC_USA, L273.MAC_higwp_phaseInTime_USA)
+
+    return_data(L273.en_ghg_tech_coeff_USA,  L273.en_ghg_emissions_USA, L273.out_ghg_emissions_USA,
+                L273.MAC_higwp_USA, L273.MAC_higwp_TC_USA, L273.MAC_higwp_phaseInTime_USA,
+                L273.res_ghg_emfact_USA, L273.ResReadInControl_ghg_res_USA)
 
   } else {
     stop("Unknown command")

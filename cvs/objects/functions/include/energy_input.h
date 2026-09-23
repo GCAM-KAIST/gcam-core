@@ -50,10 +50,10 @@
 #include "functions/include/minicam_input.h"
 #include "util/base/include/value.h"
 #include "util/base/include/time_vector.h"
+#include "marketplace/include/cached_market.h"
 
 class Tabs;
 class ICoefficient;
-class CachedMarket;
 
 /*! 
  * \ingroup Objects
@@ -77,7 +77,6 @@ class CachedMarket;
  *                              efficiency can be input).
  *              - \c calibrated-value EnergyInput::mCalibrationInput
  *              - \c income-elasticity EnergyInput::mIncomeElasticity
- *              - \c tech-change EnergyInput::mTechChange
  *
  * \author Josh Lurz
  */
@@ -108,14 +107,14 @@ public:
     virtual void copyParam( const IInput* aInput,
                             const int aPeriod );
 
-    virtual void completeInit( const std::string& aRegionName,
-                               const std::string& aSectorName,
-                               const std::string& aSubsectorName,
-                               const std::string& aTechName,
+    virtual void completeInit( const gcamstr& aRegionName,
+                               const gcamstr& aSectorName,
+                               const gcamstr& aSubsectorName,
+                               const gcamstr& aTechName,
                                const IInfo* aTechInfo );
 
-    virtual void initCalc( const std::string& aRegionName,
-                           const std::string& aSectorName,
+    virtual void initCalc( const gcamstr& aRegionName,
+                           const gcamstr& aSectorName,
                            const bool aIsNewInvestmentPeriod,
                            const bool aIsTrade,
                            const IInfo* aTechInfo,
@@ -123,24 +122,24 @@ public:
 
     virtual void initializeTypeFlags();
 
-    virtual const std::string& getMarketName( const std::string& aRegionName ) const;
+    virtual const std::string& getMarketName( const gcamstr& aRegionName ) const;
 
-    virtual  double getCO2EmissionsCoefficient( const std::string& aGHGName,
+    virtual  double getCO2EmissionsCoefficient( const gcamstr& aGHGName,
                                              const int aPeriod ) const;
     
     virtual double getPhysicalDemand( const int aPeriod ) const;
     
     virtual double getCarbonContent( const int aPeriod ) const;
     
-    virtual double getPrice( const std::string& aRegionName,
+    virtual double getPrice( const gcamstr& aRegionName,
                              const int aPeriod ) const;
 
-    virtual void setPrice( const std::string& aRegionName,
+    virtual void setPrice( const gcamstr& aRegionName,
                            const double aPrice,
                            const int aPeriod );
 
     virtual void setPhysicalDemand( const double aPhysicalDemand,
-                                    const std::string& aRegionName,
+                                    const gcamstr& aRegionName,
                                     const int aPeriod );
 
     virtual double getCoefficient( const int aPeriod ) const;
@@ -154,8 +153,6 @@ public:
 
     virtual double getPriceElasticity( const int aPeriod ) const;
 
-    virtual double getTechChange( const int aPeriod ) const;
-
     virtual void copyParamsInto( EnergyInput& aInput,
                                  const int aPeriod ) const;
     
@@ -166,7 +163,7 @@ public:
 protected:
     EnergyInput( const EnergyInput& aOther );
 
-    void initializeCachedCoefficients( const std::string& aRegionName );
+    void initializeCachedCoefficients( const gcamstr& aRegionName );
     
     // Define data such that introspection utilities can process the data from this
     // subclass together with the data members of the parent classes.
@@ -182,15 +179,9 @@ protected:
         //! Read-in calibration value.
         DEFINE_VARIABLE( SIMPLE, "calibrated-value", mCalibrationInput, Value ),
 
-        //! Income elasticity.
-        DEFINE_VARIABLE( SIMPLE, "income-elasticity", mIncomeElasticity, Value ),
-        
-        //! Input specific technical change.
-        DEFINE_VARIABLE( SIMPLE, "tech-change", mTechChange, Value ),
-
         //! The market name from which to demand.  It will default to the region
         //! in which this input is contained.
-        DEFINE_VARIABLE( SIMPLE, "market-name", mMarketName, std::string ),
+        DEFINE_VARIABLE( SIMPLE, "market-name", mMarketName, gcamstr ),
 
         //! Conversion factor to change the market price units to working units
         DEFINE_VARIABLE( SIMPLE, "price-unit-conversion", mPriceUnitConversionFactor, Value ),
@@ -205,7 +196,7 @@ protected:
     
     //! A pre-located market which has been cahced from the marketplace to get
     //! the price and add demands to.
-    std::unique_ptr<CachedMarket> mCachedMarket;
+    CachedMarket mCachedMarket;
 
 private:
     const static std::string XML_REPORTING_NAME; //!< tag name for reporting xml db 

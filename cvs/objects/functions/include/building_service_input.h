@@ -88,12 +88,14 @@ public:
 
     // Building service specific methods
     void setServiceDensity( const double aServiceDensity, const int aPeriod );
-    
-    SatiationDemandFunction* getSatiationDemandFunction() const;
+
+   SatiationDemandFunction* getSatiationDemandFunction() const;
     
     virtual double calcThermalLoad( const BuildingNodeInput* aBuildingInput,
                                     const double aInternalGainsPerSqMeter,
                                     const int aPeriod ) const;
+
+	virtual double getBiasAdder(const int aPeriod) const;
 
     // INestedInput methods
     // define them to do nothing since a BuildingServiceInput is a leaf in the nesting structure
@@ -102,34 +104,34 @@ public:
 
     virtual void initialize() {}
 
-    virtual void calcCoefficient( const std::string& aRegionName, const std::string& aSectorName,
+    virtual void calcCoefficient( const gcamstr& aRegionName, const gcamstr& aSectorName,
         const int aTechPeriod ) {}
 
-    virtual void changeElasticity( const std::string& aRegionName, const int aPeriod,
+    virtual void changeElasticity( const gcamstr& aRegionName, const int aPeriod,
         const double aAlphaZero ) {}
 
-    virtual void changeSigma( const std::string& aRegionName, const int aPeriod,
+    virtual void changeSigma( const gcamstr& aRegionName, const int aPeriod,
         const double aAlphaZero ) {}
 
-    virtual void calcLevelizedCost( const std::string& aRegionName, const std::string& aSectorName,
+    virtual void calcLevelizedCost( const gcamstr& aRegionName, const gcamstr& aSectorName,
         const int aPeriod, const double aAlphaZero ) {}
 
-    virtual double calcInputDemand( const std::string& aRegionName, const std::string& aSectorName,
+    virtual double calcInputDemand( const gcamstr& aRegionName, const gcamstr& aSectorName,
         const int aPeriod, const double aPhysicalOutput, const double aUtilityParameterA,
         const double aAlphaZero ) { return 0; }
 
-    virtual double calcCapitalOutputRatio( const std::string& aRegionName, const std::string& aSectorName,
+    virtual double calcCapitalOutputRatio( const gcamstr& aRegionName, const gcamstr& aSectorName,
         const int aPeriod, const double aAlphaZero ) { return 1.0; }
 
-    virtual void calcVariableLevelizedCost( const std::string& aRegionName, const std::string& aSectorName,
+    virtual void calcVariableLevelizedCost( const gcamstr& aRegionName, const gcamstr& aSectorName,
         const int aPeriod, const double aAlphaZero ) {}
 
     virtual const IFunction* getFunction() const { return 0; }
     
-    virtual double getLevelizedCost( const std::string& aRegionName, const std::string& aSectorName,
+    virtual double getLevelizedCost( const gcamstr& aRegionName, const gcamstr& aSectorName,
         const int aPeriod ) const { return 0; }
 
-    virtual void applyTechnicalChange( const std::string& aRegionName, const std::string& aSectorName,
+    virtual void applyTechnicalChange( const gcamstr& aRegionName, const gcamstr& aSectorName,
         const int aPeriod, const TechChange& aTechChange ) {}
 
     virtual void resetCalcLevelizedCostFlag() {}
@@ -142,9 +144,9 @@ public:
 
     virtual bool isSameType( const std::string& aType ) const;
     
-    virtual const std::string& getName() const;
+    virtual const gcamstr& getName() const;
 
-    virtual const std::string& getMarketName( const std::string& aRegionName ) const { return aRegionName; }
+    virtual const std::string& getMarketName( const gcamstr& aRegionName ) const { return aRegionName; }
 
     virtual const std::string& getXMLReportingName() const;
     
@@ -156,14 +158,14 @@ public:
     
     virtual bool hasTypeFlag( const int aTypeFlag ) const;
 
-    virtual void completeInit( const std::string& aRegionName,
-                               const std::string& aSectorName,
-                               const std::string& aSubsectorName,
-                               const std::string& aTechName,
+    virtual void completeInit( const gcamstr& aRegionName,
+                               const gcamstr& aSectorName,
+                               const gcamstr& aSubsectorName,
+                               const gcamstr& aTechName,
                                const IInfo* aTechInfo );
 
-    virtual void initCalc( const std::string& aRegionName,
-                           const std::string& aSectorName,
+    virtual void initCalc( const gcamstr& aRegionName,
+                           const gcamstr& aSectorName,
                            const bool aIsNewInvestmentPeriod,
                            const bool aIsTrade,
                            const IInfo* aTechInfo,
@@ -172,23 +174,41 @@ public:
     virtual double getPhysicalDemand( const int aPeriod ) const;
     
     virtual void setPhysicalDemand( const double aPhysicalDemand,
-                                    const std::string& aRegionName, 
+                                    const gcamstr& aRegionName, 
                                     const int aPeriod );
 
-    virtual double getPrice( const std::string& aRegionName,
+    virtual double getPrice( const gcamstr& aRegionName,
                              const int aPeriod ) const;
 
-    virtual void setPrice( const std::string& aRegionName,
+    virtual void setPrice( const gcamstr& aRegionName,
                            const double aPrice,
                            const int aPeriod );
 
-    virtual double getPricePaid( const std::string& aRegionName,
+    virtual double getPricePaid( const gcamstr& aRegionName,
                                  const int aPeriod ) const;
 
     virtual void setPricePaid( const double aPricePaid,
                                const int aPeriod );
 
-    virtual double getCoefficient( const int aPeriod ) const;
+    virtual double getCoefficient(const int aPeriod) const;
+
+	virtual double getCoef() const;
+
+    virtual double getCoalA() const;
+    
+    virtual double getCoalK() const;
+
+    virtual double getCoalBase() const;
+
+    virtual double getTradBioX() const;
+
+    virtual double getTradBioY() const;
+
+    virtual double getTradBioBase() const;
+
+    virtual double getServPriceBase() const;
+
+    virtual double getServBaseDens() const;    
 
     virtual void setCoefficient( const double aCoefficient,
                                  const int aPeriod );
@@ -200,7 +220,7 @@ public:
     }
 
     virtual void setCurrencyDemand( const double aCurrencyDemand,
-                                    const std::string& aRegionName, 
+                                    const gcamstr& aRegionName, 
                                     const int aPeriod )
     {
     }
@@ -210,18 +230,13 @@ public:
         return 0;
     }
 
-    virtual double getCO2EmissionsCoefficient( const std::string& aGHGName,
+    virtual double getCO2EmissionsCoefficient( const gcamstr& aGHGName,
                                              const int aPeriod ) const
     {
         return 0;
     }
 
     virtual double getCarbonContent( const int aPeriod ) const
-    {
-        return 0;
-    }
-
-    virtual double getTechChange( const int aPeriod ) const
     {
         return 0;
     }
@@ -236,7 +251,7 @@ public:
         return -1;
     }
 
-    virtual void tabulateFixedQuantity( const std::string& aRegionName,
+    virtual void tabulateFixedQuantity( const gcamstr& aRegionName,
                                         const double aFixedOutput,
                                         const bool aIsInvestmentPeriod,
                                         const int aPeriod ) {}
@@ -246,8 +261,8 @@ public:
     virtual double getPriceElasticity( const int aPeriod ) const {return 0;}
 
     virtual double getIncomeElasticity( const int aPeriod ) const {return 0;}
-    virtual void calcPricePaid( const std::string& aRegionName,
-                                const std::string& aSectorName,
+    virtual void calcPricePaid( const gcamstr& aRegionName,
+                                const gcamstr& aSectorName,
                                 const std::vector<AGHG*>& aGhgs,
                                 const ICaptureComponent* aSequestrationDevice,
                                 const int aLifetimeYears,
@@ -293,17 +308,47 @@ protected:
     
     // Define data such that introspection utilities can process the data from this
     // subclass together with the data members of the parent classes.
-    DEFINE_DATA_WITH_PARENT(
-        INestedInput,
+	DEFINE_DATA_WITH_PARENT(
+		INestedInput,
 
         //! The name of this input.
-        DEFINE_VARIABLE( SIMPLE, "name", mName, std::string ),
+        DEFINE_VARIABLE( SIMPLE, "name", mName, gcamstr ),
 
-        //! Building service demand by period.
-        DEFINE_VARIABLE( ARRAY | STATE, "base-service", mServiceDemand, objects::PeriodVector<Value> ),
+		//! Building service demand by period.
+		DEFINE_VARIABLE(ARRAY | STATE, "base-service", mServiceDemand, objects::PeriodVector<Value>),
 
         //! Energy service density for reporting.
-        DEFINE_VARIABLE( ARRAY | STATE | NOT_PARSABLE, "service-density", mServiceDensity, objects::PeriodVector<Value> ),
+        DEFINE_VARIABLE(ARRAY | STATE | NOT_PARSABLE, "service-density", mServiceDensity, objects::PeriodVector<Value>),
+
+		//! Demand function coefficients to capture base year thermal characteristics.
+		DEFINE_VARIABLE(SIMPLE | STATE, "coef", mCoef, Value),
+
+		//! Demand function coefficients to capture base year  characteristics.
+		DEFINE_VARIABLE(ARRAY | STATE, "bias-adder", mBiasAdderEn, objects::PeriodVector<Value>),
+
+        //! Demand function coefficients to capture base year  characteristics.
+        DEFINE_VARIABLE(SIMPLE | STATE, "A-coal", mCoalA, Value),
+
+        //! Demand function coefficients to capture base year  characteristics.
+        DEFINE_VARIABLE(SIMPLE | STATE, "k-coal", mCoalK, Value),
+
+        //! Demand function coefficients to capture base year  characteristics.
+        DEFINE_VARIABLE(SIMPLE | STATE, "base-coal", mCoalBase, Value),
+
+        //! Demand function coefficients to capture base year  characteristics.
+        DEFINE_VARIABLE(SIMPLE | STATE, "x-TradBio", mTradBioX, Value),
+
+        //! Demand function coefficients to capture base year  characteristics.
+        DEFINE_VARIABLE(SIMPLE | STATE, "y-TradBio", mTradBioY, Value),
+
+        //! Demand function coefficients to capture base year  characteristics.
+        DEFINE_VARIABLE(SIMPLE | STATE, "base-TradBio", mTradBioBase, Value),
+
+        //! Demand function coefficients to capture base year thermal characteristics.
+        DEFINE_VARIABLE(SIMPLE | STATE, "price", mServPriceBase, Value),
+
+        //! Demand function coefficients to capture base year thermal characteristics.
+        DEFINE_VARIABLE(SIMPLE | STATE, "base-density", mServBaseDens, Value),
 
         //! Satiation demand function.
         DEFINE_VARIABLE( CONTAINER, "satiation-demand-function", mSatiationDemandFunction, SatiationDemandFunction* )

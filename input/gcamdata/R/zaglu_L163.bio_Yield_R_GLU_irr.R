@@ -21,19 +21,26 @@
 #' @importFrom dplyr bind_rows filter group_by left_join mutate pull select summarise
 #' @author ACS June 2017
 module_aglu_L163.bio_Yield_R_GLU_irr <- function(command, ...) {
+
+  MODULE_INPUTS <-
+    c(FILE = "common/iso_GCAM_regID",
+      "L100.LDS_ag_HA_ha",
+      "L100.LDS_ag_prod_t",
+      "L101.ag_HA_bm2_R_C_Y_GLU",
+      "L151.ag_irrHA_ha_ctry_crop",
+      "L151.ag_irrProd_t_ctry_crop",
+      "L151.ag_rfdHA_ha_ctry_crop",
+      "L151.ag_rfdProd_t_ctry_crop")
+
+  MODULE_OUTPUTS <-
+    c("L163.ag_irrBioYield_GJm2_R_GLU",
+      "L163.ag_rfdBioYield_GJm2_R_GLU",
+      "L113.ag_bioYield_GJm2_R_GLU")
+
   if(command == driver.DECLARE_INPUTS) {
-    return(c(FILE = "common/iso_GCAM_regID",
-             "L100.LDS_ag_HA_ha",
-             "L100.LDS_ag_prod_t",
-             "L101.ag_HA_bm2_R_C_Y_GLU",
-             "L151.ag_irrHA_ha_ctry_crop",
-             "L151.ag_irrProd_t_ctry_crop",
-             "L151.ag_rfdHA_ha_ctry_crop",
-             "L151.ag_rfdProd_t_ctry_crop"))
+    return(MODULE_INPUTS)
   } else if(command == driver.DECLARE_OUTPUTS) {
-    return(c("L163.ag_irrBioYield_GJm2_R_GLU",
-             "L163.ag_rfdBioYield_GJm2_R_GLU",
-             "L113.ag_bioYield_GJm2_R_GLU"))
+    return(MODULE_OUTPUTS)
   } else if(command == driver.MAKE) {
 
     all_data <- list(...)[[1]]
@@ -42,15 +49,8 @@ module_aglu_L163.bio_Yield_R_GLU_irr <- function(command, ...) {
       Yield <- Ratio <- iso <- GCAM_region_ID <- GLU <- Irr_Rfd <- Ratio_weight <- . <-
       YieldIndex <- NULL  # silence package check notes
 
-    # Load required inputs
-    iso_GCAM_regID <- get_data(all_data, "common/iso_GCAM_regID")
-    L100.LDS_ag_HA_ha <- get_data(all_data, "L100.LDS_ag_HA_ha")
-    L100.LDS_ag_prod_t <- get_data(all_data, "L100.LDS_ag_prod_t")
-    L101.ag_HA_bm2_R_C_Y_GLU <- get_data(all_data, "L101.ag_HA_bm2_R_C_Y_GLU")
-    L151.ag_irrHA_ha_ctry_crop <- get_data(all_data, "L151.ag_irrHA_ha_ctry_crop")
-    L151.ag_irrProd_t_ctry_crop <- get_data(all_data, "L151.ag_irrProd_t_ctry_crop")
-    L151.ag_rfdHA_ha_ctry_crop <- get_data(all_data, "L151.ag_rfdHA_ha_ctry_crop")
-    L151.ag_rfdProd_t_ctry_crop <- get_data(all_data, "L151.ag_rfdProd_t_ctry_crop")
+    # Load required inputs ----
+    get_data_list(all_data, MODULE_INPUTS, strip_attributes = TRUE)
 
 
     # Perform computations
@@ -137,7 +137,7 @@ module_aglu_L163.bio_Yield_R_GLU_irr <- function(command, ...) {
     # but now for rainfed and irrigated, rather than generic, crops
     L151.ag_irrHA_ha_ctry_crop %>%
       bind_rows(L151.ag_rfdHA_ha_ctry_crop) %>%
-      left_join_error_no_match(bind_rows(L151.ag_irrProd_t_ctry_crop, L151.ag_rfdProd_t_ctry_crop),
+      inner_join(bind_rows(L151.ag_irrProd_t_ctry_crop, L151.ag_rfdProd_t_ctry_crop),
                                by = c("iso", "GLU", "GTAP_crop", "Irr_Rfd")) %>%
       mutate(Yield = Prod / HA) %>%
       # drop NA's - values where HA = 0
@@ -179,15 +179,18 @@ module_aglu_L163.bio_Yield_R_GLU_irr <- function(command, ...) {
     L163.base_bio_yield_GJm2 <- L163.base_bio_yield_tha * aglu.BIO_ENERGY_CONTENT_GJT / CONV_HA_M2
 
     # Finally, calculate bioenergy yields in each region-glu-irrigation combo:
+    # Added a guard on yield to limit the maximum yield to ~30 tonnes per hectare (0.0525 GJ/m2)
     L113.YieldIndex_R_GLU %>%
       mutate(Yield_GJm2 = YieldIndex * L113.base_bio_yield_GJm2) %>%
-      select(-HA, -Ratio_weight, -YieldIndex) ->
+      select(-HA, -Ratio_weight, -YieldIndex) %>%
+      mutate(Yield_GJm2 = if_else(Yield_GJm2 > aglu.BIO_CEILING, aglu.BIO_CEILING, Yield_GJm2)) ->
       L113.ag_bioYield_GJm2_R_GLU
 
 
     L163.YieldIndex_R_GLU_irr %>%
       mutate(Yield_GJm2 = YieldIndex * L163.base_bio_yield_GJm2) %>%
-      select(-HA, -Ratio_weight, -YieldIndex) ->
+      select(-HA, -Ratio_weight, -YieldIndex) %>%
+      mutate(Yield_GJm2 = if_else(Yield_GJm2 > aglu.BIO_CEILING, aglu.BIO_CEILING, Yield_GJm2)) ->
       L163.ag_bioYield_GJm2_R_GLU_irr
 
 
@@ -230,8 +233,9 @@ module_aglu_L163.bio_Yield_R_GLU_irr <- function(command, ...) {
                      "L100.LDS_ag_HA_ha",
                      "L100.LDS_ag_prod_t",
                      "L151.ag_irrHA_ha_ctry_crop",
-                     "L151.ag_irrProd_t_ctry_crop")  ->
+                     "L151.ag_irrProd_t_ctry_crop") ->
       L163.ag_irrBioYield_GJm2_R_GLU
+
     L163.ag_rfdBioYield_GJm2_R_GLU %>%
       add_title("Reference base year bioenergy yields for rainfed crops by GCAM region / GLU") %>%
       add_units("Gigajoule per square meter (GJ/m2)") %>%
@@ -247,7 +251,7 @@ module_aglu_L163.bio_Yield_R_GLU_irr <- function(command, ...) {
                      "L151.ag_rfdProd_t_ctry_crop") ->
       L163.ag_rfdBioYield_GJm2_R_GLU
 
-    return_data(L113.ag_bioYield_GJm2_R_GLU, L163.ag_irrBioYield_GJm2_R_GLU, L163.ag_rfdBioYield_GJm2_R_GLU)
+    return_data(MODULE_OUTPUTS)
   } else {
     stop("Unknown command")
   }

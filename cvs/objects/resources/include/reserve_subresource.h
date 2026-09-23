@@ -95,10 +95,14 @@ class ReserveSubResource: public SubResource
 public:
     ReserveSubResource();
     virtual ~ReserveSubResource();
-    virtual void completeInit( const std::string& aRegionName, const std::string& aResourceName,
+    virtual void completeInit( const gcamstr& aRegionName, const gcamstr& aResourceName,
                                const IInfo* aResourceInfo );
+    virtual void initCalc( const gcamstr& aRegionName, const gcamstr& aResourceName,
+                           const IInfo* aResourceInfo, const int aPeriod );
     static const std::string& getXMLNameStatic();
-    virtual void annualsupply( const std::string& aRegionName, const std::string& aResourceName,
+    virtual void cumulsupply( const gcamstr& aRegionName, const gcamstr& aResourceName,
+                              double aPrice, int aPeriod );
+    virtual void annualsupply( const gcamstr& aRegionName, const gcamstr& aResourceName,
                                int aPeriod, double aPrice );
     virtual void accept( IVisitor* aVisitor, const int aPeriod ) const;
     virtual double getLowestPrice( const int aPeriod ) const;

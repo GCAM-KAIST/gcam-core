@@ -76,7 +76,7 @@ module_aglu_L2062.ag_Fert_irr_mgmt <- function(command, ...) {
     # Copy final base year coefficients to all future years, bind with historic coefficients, then remove zeroes
     # Note: this assumes constant fertilizer coefficients in the future ----
     L2062.AgCoef_Fert_ag_irr_mgmt %>%
-      filter(year == max(MODEL_BASE_YEARS)) %>%
+      filter(year == MODEL_FINAL_BASE_YEAR) %>%
       select(-year) %>%
       repeat_add_columns(tibble(year = MODEL_FUTURE_YEARS)) %>%
       bind_rows(L2062.AgCoef_Fert_ag_irr_mgmt) %>%
@@ -138,7 +138,13 @@ module_aglu_L2062.ag_Fert_irr_mgmt <- function(command, ...) {
       # If we wanted we could apply regional fertilizer adjustments here.
       # Since we are handling negative profits with the min cal profit rate there is no pressing need at the moment.
       mutate(nonLandVariableCost = round(nonLandVariableCost - FertCost, aglu.DIGITS_CALPRICE)) %>%
-      select(-minicam.energy.input, -coefficient, -FertCost) ->
+      select(-minicam.energy.input, -coefficient, -FertCost) %>%
+      # Given the historical price of biomass is solved we could end up with negative profit rates
+      # when trying to calibrate "ghost" share weights.  Which conceptually makes sense but mechanically
+      # is an issue.  Instead we will modify meaning of the ghost share weight by scaling down costs during
+      # calibration only.  Then to actually realize the ghost share the price must go up (or costs go down)
+      # accordingly in future periods.
+      mutate(nonLandVariableCost = if_else(year == MODEL_FINAL_BASE_YEAR, nonLandVariableCost * aglu.BIO_GHOST_CAL_COST_SCALER, nonLandVariableCost)) ->
       L2062.AgCost_bio_irr_mgmt_adj
 
     # Produce outputs

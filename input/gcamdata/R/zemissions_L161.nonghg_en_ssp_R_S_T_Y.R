@@ -27,7 +27,10 @@ module_emissions_L161.nonghg_en_ssp_R_S_T_Y <- function(command, ...) {
              "L102.pcgdp_thous90USD_Scen_R_Y",
              "L111.nonghg_tgej_R_en_S_F_Yh_infered_combEF_AP",
              "L114.bcoc_tgej_R_en_S_F_2000",
-             FILE = "emissions/A61_emfact_rules"))
+             FILE = "emissions/A61_emfact_rules",
+             FILE = "socioeconomics/income_shares",
+             "L244.DeleteGenericService",
+             "L244.DeleteThermalService"))
   } else if(command == driver.DECLARE_OUTPUTS) {
     return(c("L161.SSP15_EF",
              "L161.SSP2_EF",
@@ -62,15 +65,30 @@ module_emissions_L161.nonghg_en_ssp_R_S_T_Y <- function(command, ...) {
     GAINS_emissions <- get_data(all_data, "emissions/GAINS_emissions") %>%
       # NOTE: these are three different scenarios
       # CLE = current legislation, SLE = stringent legislation, MFR = maximum feasible reductions
-      gather(scenario, value, CLE, MFR, SLE)
+      tidyr::gather(scenario, value, CLE, MFR, SLE)
     L102.pcgdp_thous90USD_Scen_R_Y <- get_data(all_data, "L102.pcgdp_thous90USD_Scen_R_Y")
     L111.nonghg_tgej_R_en_S_F_Yh_infered_combEF_AP <- get_data(all_data, "L111.nonghg_tgej_R_en_S_F_Yh_infered_combEF_AP")
     L114.bcoc_tgej_R_en_S_F_2000 <- get_data(all_data, "L114.bcoc_tgej_R_en_S_F_2000") %>%
-      gather(year, value, `2000`) %>%
+      tidyr::gather(year, value, `2000`) %>%
       mutate(year = as.integer(year))
     A61_emfact_rules <- get_data(all_data, "emissions/A61_emfact_rules")
+    income_shares<-get_data(all_data, "socioeconomics/income_shares")
+    L244.DeleteGenericService<-get_data(all_data, "L244.DeleteGenericService")
+    L244.DeleteThermalService<-get_data(all_data, "L244.DeleteThermalService")
 
     # ===================================================
+
+    # Adjust the mapping sectors with the new residential sector (mult consumers)
+    GCAM_sector_tech_resid<-GCAM_sector_tech %>%
+      filter(grepl("resid",supplysector)) %>%
+      repeat_add_columns(tibble(group=unique(income_shares$category))) %>%
+      mutate(sector = paste(sector,group,sep = "_"),
+             supplysector = paste(supplysector,group,sep = "_")) %>%
+      select(-group)
+
+    GCAM_sector_tech<-GCAM_sector_tech %>%
+      filter(!grepl("resid",supplysector)) %>%
+      bind_rows(GCAM_sector_tech_resid)
 
     # Aggregate GAINS emissions data by GCAM sector
     GAINS_emissions_agg <- GAINS_emissions %>%
@@ -185,8 +203,14 @@ module_emissions_L161.nonghg_en_ssp_R_S_T_Y <- function(command, ...) {
 
     # Create a tibble with just marker region values
     # Marker region is Western Europe (13) - some values will be set to its emissions factors in future
+
+    # unlikely but check and throw an error if the region number for EU-15 is changed from 13 to something else
+    if (!identical(as.numeric(A_regions %>% filter(region == "EU-15") %>% pull(GCAM_region_ID)), 13)) {
+      stop("Region code for Western Europe (EU-15) has changed from 13 to something else. Please correct in module_emissions_L161.nonghg_en_ssp_R_S_T_Y.")
+    }
+
     marker_region_df <- emfact_scaled %>%
-      filter(GCAM_region_ID == gcam.WESTERN_EUROPE_CODE) %>%
+      filter(GCAM_region_ID == 13) %>%
       select(-GCAM_region_ID, -GAINS_region, -region_grouping) %>%
       rename(marker_value = emfact)
 
@@ -240,6 +264,18 @@ module_emissions_L161.nonghg_en_ssp_R_S_T_Y <- function(command, ...) {
       select(-prev) %>%
       ungroup
 
+    # Adjustment: Do not write emission factors for the residential sector technologies that do not exist (e.g., heating in Indonesia)
+    L244.DeleteService<-bind_rows(L244.DeleteGenericService %>% select(-building.service.input),
+                                  L244.DeleteThermalService %>% select(-thermal.building.service.input)) %>%
+      select(region,supplysector)
+
+    SSP_EF<-SSP_EF %>%
+      left_join_error_no_match(A_regions %>% select(region,GCAM_region_ID), by = "GCAM_region_ID") %>%
+      anti_join(L244.DeleteService, by=c("region","supplysector")) %>%
+      select(-region)
+
+
+
     # Split data by SSP grouping
     out_df <- SSP_EF %>%
       split(.$SSP_group) %>%
@@ -262,7 +298,10 @@ module_emissions_L161.nonghg_en_ssp_R_S_T_Y <- function(command, ...) {
                      "L102.pcgdp_thous90USD_Scen_R_Y",
                      "L111.nonghg_tgej_R_en_S_F_Yh_infered_combEF_AP",
                      "L114.bcoc_tgej_R_en_S_F_2000",
-                     "emissions/A61_emfact_rules") ->
+                     "emissions/A61_emfact_rules",
+                     "socioeconomics/income_shares",
+                     "L244.DeleteGenericService",
+                     "L244.DeleteThermalService") ->
       L161.SSP15_EF
 
     out_df[["2"]] %>%
@@ -279,7 +318,10 @@ module_emissions_L161.nonghg_en_ssp_R_S_T_Y <- function(command, ...) {
                      "L102.pcgdp_thous90USD_Scen_R_Y",
                      "L111.nonghg_tgej_R_en_S_F_Yh_infered_combEF_AP",
                      "L114.bcoc_tgej_R_en_S_F_2000",
-                     "emissions/A61_emfact_rules") ->
+                     "emissions/A61_emfact_rules",
+                     "socioeconomics/income_shares",
+                     "L244.DeleteGenericService",
+                     "L244.DeleteThermalService") ->
       L161.SSP2_EF
 
     out_df[["3&4"]] %>%
@@ -296,7 +338,10 @@ module_emissions_L161.nonghg_en_ssp_R_S_T_Y <- function(command, ...) {
                      "L102.pcgdp_thous90USD_Scen_R_Y",
                      "L111.nonghg_tgej_R_en_S_F_Yh_infered_combEF_AP",
                      "L114.bcoc_tgej_R_en_S_F_2000",
-                     "emissions/A61_emfact_rules") ->
+                     "emissions/A61_emfact_rules",
+                     "socioeconomics/income_shares",
+                     "L244.DeleteGenericService",
+                     "L244.DeleteThermalService") ->
       L161.SSP34_EF
 
     return_data(L161.SSP15_EF, L161.SSP2_EF, L161.SSP34_EF)

@@ -12,7 +12,7 @@
 #' \code{L2321.StubTechCoef_cement_USA}, \code{L2321.StubTechCalInput_cement_heat_USA}, \code{L2321.StubTechMarket_cement_USA}, \code{L2321.BaseService_cement_USA},
 #' \code{L2321.Supplysector_cement_USA}, \code{L2321.FinalEnergyKeyword_cement_USA}, \code{L2321.SubsectorLogit_cement_USA},
 #' \code{L2321.SubsectorShrwtFllt_cement_USA}, \code{L2321.StubTech_cement_USA}, \code{L2321.PerCapitaBased_cement_USA},
-#'  \code{L2321.PriceElasticity_cement_USA}, \code{L2321.IncomeElasticity_cement_gcam3_USA} .
+#'  \code{L2321.PriceElasticity_cement_USA}, \code{} .
 #'  The corresponding file in the original data system was \code{L2321.cement_USA.R} (gcam-usa level2).
 #' @details Make the logit and input tables for the cement sector in gcam-usa
 #' @importFrom assertthat assert_that
@@ -33,7 +33,6 @@ module_gcamusa_L2321.cement <- function(command, ...) {
              "L2321.StubTech_cement",
              "L2321.PerCapitaBased_cement",
              "L2321.PriceElasticity_cement",
-             "L2321.IncomeElasticity_cement_gcam3",
              "L1321.in_EJ_state_cement_F_Y",
              "L1321.IO_GJkg_state_cement_F_Yh",
              "L1321.out_Mt_state_cement_Yh"))
@@ -52,8 +51,7 @@ module_gcamusa_L2321.cement <- function(command, ...) {
              "L2321.SubsectorInterp_cement_USA",
              "L2321.StubTech_cement_USA",
              "L2321.PerCapitaBased_cement_USA",
-             "L2321.PriceElasticity_cement_USA",
-             "L2321.IncomeElasticity_cement_gcam3_USA"))
+             "L2321.PriceElasticity_cement_USA"))
   } else if(command == driver.MAKE) {
 
     all_data <- list(...)[[1]]
@@ -73,7 +71,6 @@ module_gcamusa_L2321.cement <- function(command, ...) {
     L2321.StubTech_cement <- get_data(all_data, "L2321.StubTech_cement", strip_attributes = TRUE)
     L2321.PerCapitaBased_cement <- get_data(all_data, "L2321.PerCapitaBased_cement", strip_attributes = TRUE)
     L2321.PriceElasticity_cement <- get_data(all_data, "L2321.PriceElasticity_cement", strip_attributes = TRUE)
-    L2321.IncomeElasticity_cement_gcam3 <- get_data(all_data, "L2321.IncomeElasticity_cement_gcam3", strip_attributes = TRUE)
     L1321.in_EJ_state_cement_F_Y <- get_data(all_data, "L1321.in_EJ_state_cement_F_Y", strip_attributes = TRUE)
     L1321.IO_GJkg_state_cement_F_Yh <- get_data(all_data, "L1321.IO_GJkg_state_cement_F_Yh", strip_attributes = TRUE)
     L1321.out_Mt_state_cement_Yh <- get_data(all_data, "L1321.out_Mt_state_cement_Yh", strip_attributes = TRUE)
@@ -166,7 +163,6 @@ module_gcamusa_L2321.cement <- function(command, ...) {
     L2321.StubTech_cement_USA <- cement_USA_processing(L2321.StubTech_cement, cement_states)
     L2321.PerCapitaBased_cement_USA <- cement_USA_processing(L2321.PerCapitaBased_cement, cement_states)
     L2321.PriceElasticity_cement_USA <- cement_USA_processing(L2321.PriceElasticity_cement, cement_states)
-    L2321.IncomeElasticity_cement_gcam3_USA <- cement_USA_processing(L2321.IncomeElasticity_cement_gcam3, cement_states)
 
 
     # Create stub-technology calibrated cement production input table.
@@ -221,6 +217,7 @@ module_gcamusa_L2321.cement <- function(command, ...) {
     # Add cement sector information to the data frame of input-output coefficients of
     # cement production by state.
     L1321.IO_GJkg_state_cement_F_Yh %>%
+      filter(year <= max(MODEL_BASE_YEARS)) %>%
       left_join_error_no_match(cement_production_technologies, by = c("sector", "fuel")) %>%
       select(state,fuel, sector, year, value, supplysector, subsector, technology, minicam.energy.input) ->
       L2321.IO_GJkg_state_cement_F_Yh
@@ -257,7 +254,8 @@ module_gcamusa_L2321.cement <- function(command, ...) {
 
     # Format the the data frame and round the number of digits.
     IO_and_globaltech %>%
-      gather_years %>%
+      gather(year, value, -state, -fuel, -sector, -supplysector, -subsector, -technology, -minicam.energy.input) %>%
+      mutate(year = as.integer(year)) %>%
       filter(year %in% MODEL_YEARS) %>%
       mutate(coefficient = signif(value, energy.DIGITS_COEFFICIENT)) %>%
       select(-value) ->
@@ -521,13 +519,6 @@ module_gcamusa_L2321.cement <- function(command, ...) {
       add_precursors("L2321.PriceElasticity_cement", "L1321.out_Mt_state_cement_Yh") ->
       L2321.PriceElasticity_cement_USA
 
-    L2321.IncomeElasticity_cement_gcam3_USA %>%
-      add_title("Price elasticity for cement in cement producing states") %>%
-      add_units("Unitless") %>%
-      add_comments("Expanded price elasticity for cement to cement producing states in region USA") %>%
-      add_legacy_name("L2321.IncomeElasticity_cement_gcam3_USA") %>%
-      add_precursors("L2321.IncomeElasticity_cement_gcam3", "L1321.out_Mt_state_cement_Yh") ->
-      L2321.IncomeElasticity_cement_gcam3_USA
 
     return_data(L2321.DeleteSupplysector_USAcement, L2321.DeleteFinalDemand_USAcement,
                 L2321.StubTechProd_cement_USA, L2321.StubTechCoef_cement_USA,
@@ -536,7 +527,7 @@ module_gcamusa_L2321.cement <- function(command, ...) {
                 L2321.FinalEnergyKeyword_cement_USA, L2321.SubsectorLogit_cement_USA,
                 L2321.SubsectorShrwtFllt_cement_USA, L2321.SubsectorInterp_cement_USA,
                 L2321.StubTech_cement_USA, L2321.PerCapitaBased_cement_USA,
-                L2321.PriceElasticity_cement_USA, L2321.IncomeElasticity_cement_gcam3_USA)
+                L2321.PriceElasticity_cement_USA)
   } else {
     stop("Unknown command")
   }

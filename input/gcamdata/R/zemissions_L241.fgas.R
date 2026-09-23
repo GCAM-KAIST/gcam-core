@@ -20,9 +20,11 @@ module_emissions_L241.fgas <- function(command, ...) {
     return(c(FILE = "common/GCAM_region_names",
              FILE = "emissions/A_regions",
              FILE = "emissions/FUT_EMISS_GV",
+             FILE = "emissions/mappings/USAbld_emission_mapping",
              "L141.hfc_R_S_T_Yh",
              "L141.hfc_ef_R_cooling_Yh",
-             "L142.pfc_R_S_T_Yh"))
+             "L142.pfc_R_S_T_Yh",
+             "L244.StubTechCalInput_bld"))
   } else if(command == driver.DECLARE_OUTPUTS) {
     return(c("L241.hfc_all",
              "L241.pfc_all",
@@ -36,9 +38,11 @@ module_emissions_L241.fgas <- function(command, ...) {
     GCAM_region_names <- get_data(all_data, "common/GCAM_region_names")
     A_regions         <- get_data(all_data, "emissions/A_regions")
     FUT_EMISS_GV      <- get_data(all_data, "emissions/FUT_EMISS_GV")
+    USAbld_emission_mapping      <- get_data(all_data, "emissions/mappings/USAbld_emission_mapping")
     L142.pfc_R_S_T_Yh <- get_data(all_data, "L142.pfc_R_S_T_Yh", strip_attributes = T)
     L141.hfc_R_S_T_Yh <- get_data(all_data, "L141.hfc_R_S_T_Yh", strip_attributes = T)
     L141.hfc_ef_R_cooling_Yh <- get_data(all_data, "L141.hfc_ef_R_cooling_Yh", strip_attributes = T)
+    L244.StubTechCalInput_bld <- get_data(all_data, "L244.StubTechCalInput_bld", strip_attributes = T)
 
     ## silence package check.
     . <- `2010` <- `2020` <- `2030` <- EF <- Emissions <- GCAM_region_ID <- GDP <-
@@ -147,7 +151,7 @@ module_emissions_L241.fgas <- function(command, ...) {
     #
     # First, subset the hfc emissions for non-cooling emissions.
     L141.hfc_R_S_T_Yh %>%
-      filter(!supplysector %in% c("resid cooling", "comm cooling")) %>%
+      filter(!grepl("cooling",supplysector)) %>%
       # EF is 1000 x emissions for non-cooling sectors
       mutate(value = value * 1000) %>%
       filter(year == MAX_DATA_YEAR) %>%
@@ -199,16 +203,53 @@ module_emissions_L241.fgas <- function(command, ...) {
       bind_rows(L241.hfc_cool_ef_update_filtered) %>%
       mutate(emiss.coeff = round(value, emissions.DIGITS_EMISSIONS),
              year = as.numeric(year)) %>%
-      select(region, supplysector, subsector, stub.technology, year, Non.CO2, emiss.coeff) ->
+      select(region, supplysector, subsector, stub.technology, year, Non.CO2, emiss.coeff) %>%
+      group_by(region, supplysector, subsector, stub.technology, Non.CO2) %>%
+      # In normal mode, this will add the first future year, but a more complex
+      # formula is used to ensure timeshift uses years that are considered "future"
+      tidyr::complete(year = min(MODEL_YEARS[MODEL_YEARS > FINAL_HISTORICAL_YEAR])) %>%
+      mutate(emiss.coeff = approx_fun(year, emiss.coeff)) %>%
+      ungroup() %>%
+      # note: we actually allow some base year rows in the "future" table because we
+      # need to include some emissions factors for some missing regions
+      filter(year %in% MODEL_YEARS) ->
       L241.hfc_future
 
     # Now subset only the relevant technologies and gases (i.e., drop ones whose values are zero in all years).
     L241.hfc_all %>%
       group_by(region, supplysector, subsector, stub.technology, Non.CO2) %>%
-      filter(sum(input.emissions) != 0, year %in% MODEL_BASE_YEARS) %>%
+      filter(sum(input.emissions) != 0, year %in% MODEL_YEARS[MODEL_YEARS <= FINAL_HISTORICAL_YEAR]) %>%
       mutate(year = as.numeric(year)) %>%
       ungroup ->
       L241.hfc_all
+
+    # Downscale emissions in USA buildings to their detailed technologies
+    L244.HFC_tech_shares <- L244.StubTechCalInput_bld %>%
+      inner_join(USAbld_emission_mapping, by = c("region", supplysector = "to.supplysector", subsector = "to.subsector", stub.technology = "to.stub.technology")) %>%
+      group_by(region, from.supplysector, from.subsector, from.stub.technology, year) %>%
+      mutate(tech_share = calibrated.value / sum(calibrated.value)) %>%
+      ungroup() %>%
+      replace_na(list(tech_share = 0)) %>%
+      select(region, to.supplysector = supplysector, to.subsector = subsector, to.stub.technology = stub.technology, year, tech_share)
+
+    L241.hfc_all_USAbld <- L241.hfc_all %>%
+      inner_join(USAbld_emission_mapping, by = c("region", supplysector = "from.supplysector", subsector = "from.subsector", stub.technology = "from.stub.technology")) %>%
+      left_join_error_no_match(L244.HFC_tech_shares, by = c("region", "to.supplysector", "to.subsector", "to.stub.technology", "year")) %>%
+      mutate(input.emissions = input.emissions * tech_share,
+             supplysector = to.supplysector, subsector = to.subsector, stub.technology = to.stub.technology) %>%
+      select(names(L241.hfc_all))
+
+    L241.hfc_all <- L241.hfc_all_USAbld %>%
+      bind_rows(anti_join(L241.hfc_all, USAbld_emission_mapping,
+                          by = c("region", supplysector = "from.supplysector", subsector = "from.subsector", stub.technology = "from.stub.technology")))
+
+    # Emissions coefficients in L241.hfc_future can simply be mapped to their corresponding detailed building technology
+    L241.hfc_future <- L241.hfc_future %>%
+      left_join(USAbld_emission_mapping, by = c("region", supplysector = "from.supplysector", subsector = "from.subsector", stub.technology = "from.stub.technology")) %>%
+      mutate(supplysector = if_else(is.na(to.supplysector), supplysector, to.supplysector),
+             subsector = if_else(is.na(to.subsector), subsector, to.subsector),
+             stub.technology = if_else(is.na(to.stub.technology), stub.technology, to.stub.technology)) %>%
+      select(-to.supplysector, -to.subsector, -to.stub.technology)
 
     # Set the units string for the hfc and pfc gases.
     L241.pfc_all %>%
@@ -229,14 +270,23 @@ module_emissions_L241.fgas <- function(command, ...) {
 
     # ===================================================
 
+    # A temporary fix for JGCRI-506
+    L241.hfc_all %>%
+      filter(year <= 2015) ->
+      L241.hfc_all
+
+    L241.pfc_all %>%
+      filter(year <= 2015) ->
+      L241.pfc_all
+
     L241.hfc_all %>%
       add_title("HFC gas emission input table") %>%
       add_units("Gg") %>%
       add_comments("Emission values from L1 rounded to the appropriate digits.") %>%
       add_legacy_name("L241.hfc_all") %>%
       add_precursors("common/GCAM_region_names", "emissions/A_regions", "emissions/FUT_EMISS_GV",
-                     "L141.hfc_R_S_T_Yh", "L142.pfc_R_S_T_Yh",
-                     "L141.hfc_ef_R_cooling_Yh") ->
+                     "emissions/mappings/USAbld_emission_mapping", "L141.hfc_R_S_T_Yh", "L142.pfc_R_S_T_Yh",
+                     "L141.hfc_ef_R_cooling_Yh", "L244.StubTechCalInput_bld") ->
       L241.hfc_all
 
     L241.pfc_all %>%

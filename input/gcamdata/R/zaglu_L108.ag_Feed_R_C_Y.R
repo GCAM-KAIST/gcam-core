@@ -98,8 +98,18 @@ module_aglu_L108.ag_Feed_R_C_Y <- function(command, ...) {
       group_by(GCAM_region_ID, year) %>%
       mutate(Feedfrac = value / sum(value)) %>%                                                    # Calculate each crop's share of total feed in a region
       replace_na(list(Feedfrac = 0)) %>%      # Replace missing data with 0 (assumes no share for those crops)
-      ungroup() ->
-      ag_Feed_Mt_R_Cnf_Y
+      ungroup() -> ag_Feed_Mt_R_Cnf_Y
+
+    # Problem below Are negative values here for OilCrop in 4 regions (including USA) in 2016, 2017
+    # It is suspicious that this only happens in 2016 and 2017
+    # Need to eliminate the negative here and reduce the animal feed input as noted in comments after this block below.
+
+    # Temp fix get rid of negatives. Perhaps ultimate fix is to work out equation to adjust secondary output coefficients.
+    if(any(ag_Feed_Mt_R_Cnf_Y$value < 0)){
+      warning("Negative values are observered in ag_Feed_Mt_R_Cnf_Y of module_aglu_L108.ag_Feed_R_C_Y.")
+      ag_Feed_Mt_R_Cnf_Y %>%
+        mutate(value = if_else(value < 0, 0, value)) ->  ag_Feed_Mt_R_Cnf_Y
+    }
 
     # If any of the secondary output feedcakes of some GCAM commodity used for biodiesel production exceed the
     # reported use of that commodity as feed in FAOSTAT, the method above returns negative estimates of feed demand.
@@ -215,13 +225,13 @@ module_aglu_L108.ag_Feed_R_C_Y <- function(command, ...) {
     # Other use of FodderGrass will be reflected in L109 balance
     # Note that Japan has no pasture land after 2004, the demand should also be removed
 
-    iso_GCAM_regID %>% filter(iso %in% aglu.Zero_Min_PastureFeed_Share_iso) %>%
+    iso_GCAM_regID %>% filter(iso %in% aglu.ZERO_MIN_PASTUREFEED_SHARE_ISO) %>%
       distinct(GCAM_region_ID) %>% pull -> aglu.Zero_Min_PastureFeed_Share_region_ID
 
     assertthat::assert_that(
       iso_GCAM_regID %>% filter(GCAM_region_ID %in% aglu.Zero_Min_PastureFeed_Share_region_ID) %>%
-        distinct(iso) %>% pull %in% aglu.Zero_Min_PastureFeed_Share_iso %>% all,
-      msg = "aglu.Zero_Min_PastureFeed_Share_iso should have unique GCAM_region_ID is this adjustment"
+        distinct(iso) %>% pull %in% aglu.ZERO_MIN_PASTUREFEED_SHARE_ISO %>% all,
+      msg = "aglu.ZERO_MIN_PASTUREFEED_SHARE_ISO should have unique GCAM_region_ID is this adjustment"
     )
 
     an_Feed_Mt_R_C_Y %>%
@@ -230,7 +240,7 @@ module_aglu_L108.ag_Feed_R_C_Y <- function(command, ...) {
       left_join(filter(L101.ag_Prod_Mt_R_C_Y, GCAM_commodity == "FodderGrass"),
                 by = c("GCAM_region_ID", "year")) %>%                                                          # Map in FodderGrass production
       mutate(MinPasture = if_else(GCAM_region_ID %in% aglu.Zero_Min_PastureFeed_Share_region_ID, 0,
-                                  PastFodderGrass_Demand * aglu.Min_Share_PastureFeed_in_PastureFodderGrass),
+                                  PastFodderGrass_Demand * aglu.MIN_SHARE_PASTUREFEED_IN_PASTUREFODDERGRASS),
              Pasture = if_else(PastFodderGrass_Demand - value < MinPasture,
                                MinPasture,
                              PastFodderGrass_Demand - value),

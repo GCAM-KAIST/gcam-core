@@ -96,7 +96,6 @@ const string& InputSubsidy::getXMLName() const{
 //! Constructor
 InputSubsidy::InputSubsidy()
 {
-    TechVectorParseHelper<Value>::setDefaultValue( Value( 1.0 ), mAdjustedCoefficients );
 }
 
 /*!
@@ -123,9 +122,6 @@ InputSubsidy::InputSubsidy( const InputSubsidy& aOther )
     // Do not copy calibration values into the future
     // as they are only valid for one period.
     mName = aOther.mName;
-    
-    // copy keywords
-    mKeywordMap = aOther.mKeywordMap;
 }
 
 InputSubsidy* InputSubsidy::clone() const {
@@ -141,15 +137,14 @@ void InputSubsidy::toDebugXML( const int aPeriod,
                                Tabs* aTabs ) const
 {
     XMLWriteOpeningTag ( getXMLNameStatic(), aOut, aTabs, mName );
-    XMLWriteElement( mAdjustedCoefficients[ aPeriod ], "current-coef", aOut, aTabs );
     XMLWriteElement( mPhysicalDemand[ aPeriod ], "physical-demand", aOut, aTabs );
     XMLWriteClosingTag( getXMLNameStatic(), aOut, aTabs );
 }
 
-void InputSubsidy::completeInit( const string& aRegionName,
-                                 const string& aSectorName,
-                                 const string& aSubsectorName,
-                                 const string& aTechName,
+void InputSubsidy::completeInit( const gcamstr& aRegionName,
+                                 const gcamstr& aSectorName,
+                                 const gcamstr& aSubsectorName,
+                                 const gcamstr& aTechName,
                                  const IInfo* aTechInfo )
 {
 
@@ -162,8 +157,8 @@ void InputSubsidy::completeInit( const string& aRegionName,
     
 }
 
-void InputSubsidy::initCalc( const string& aRegionName,
-                             const string& aSectorName,
+void InputSubsidy::initCalc( const gcamstr& aRegionName,
+                             const gcamstr& aSectorName,
                              const bool aIsNewInvestmentPeriod,
                              const bool aIsTrade,
                              const IInfo* aTechInfo,
@@ -171,7 +166,6 @@ void InputSubsidy::initCalc( const string& aRegionName,
 {
     // There must be a valid region name.
     assert( !aRegionName.empty() );
-    mAdjustedCoefficients[ aPeriod ] = 1.0;
 }
 
 void InputSubsidy::copyParam( const IInput* aInput,
@@ -187,7 +181,7 @@ void InputSubsidy::copyParamsInto( InputSubsidy& aInput,
 }
 
 
-double InputSubsidy::getCO2EmissionsCoefficient( const string& aGHGName,
+double InputSubsidy::getCO2EmissionsCoefficient( const gcamstr& aGHGName,
                                              const int aPeriod ) const
 {
     return 0;
@@ -203,7 +197,7 @@ double InputSubsidy::getCarbonContent( const int aPeriod ) const {
 }
 
 void InputSubsidy::setPhysicalDemand( double aPhysicalDemand,
-                                     const string& aRegionName,
+                                     const gcamstr& aRegionName,
                                      const int aPeriod )
 {
 
@@ -212,8 +206,9 @@ void InputSubsidy::setPhysicalDemand( double aPhysicalDemand,
 
     // If subsidy is shared based, then divide by sector output.
     // Check if marketInfo exists and has the "isShareBased" boolean.
-    if( marketInfo && marketInfo->hasValue( "isShareBased" ) ){
-        if( marketInfo->getBoolean( "isShareBased", true ) ){
+    const static gcamstr isShareKey = gcamstr("isShareBased");
+    if( marketInfo && marketInfo->hasValue( isShareKey ) ){
+        if( marketInfo->getBoolean( isShareKey, true ) ){
             // Each share is additive
             aPhysicalDemand/= marketplace->getDemand( mSectorName, aRegionName, aPeriod );
         }
@@ -231,10 +226,7 @@ void InputSubsidy::setPhysicalDemand( double aPhysicalDemand,
 }
 
 double InputSubsidy::getCoefficient( const int aPeriod ) const {
-    // Check that the coefficient has been initialized.
-    assert( mAdjustedCoefficients[ aPeriod ].isInited() );
-
-    return mAdjustedCoefficients[ aPeriod ];
+    return 1.0;
 }
 
 void InputSubsidy::setCoefficient( const double aCoefficient,
@@ -243,7 +235,7 @@ void InputSubsidy::setCoefficient( const double aCoefficient,
     // Do nothing.
 }
 
-double InputSubsidy::getPrice( const string& aRegionName,
+double InputSubsidy::getPrice( const gcamstr& aRegionName,
                               const int aPeriod ) const
 {
     // Return negative of price to reflect subsidy for portfolio
@@ -252,7 +244,7 @@ double InputSubsidy::getPrice( const string& aRegionName,
     return - scenario->getMarketplace()->getPrice( mName, aRegionName, aPeriod, true );
 }
 
-void InputSubsidy::setPrice( const string& aRegionName,
+void InputSubsidy::setPrice( const gcamstr& aRegionName,
                             const double aPrice,
                             const int aPeriod )
 {
@@ -273,10 +265,5 @@ double InputSubsidy::getIncomeElasticity( const int aPeriod ) const {
 }
 
 double InputSubsidy::getPriceElasticity( const int aPeriod ) const {
-    return 0;
-}
-
-double InputSubsidy::getTechChange( const int aPeriod ) const
-{
     return 0;
 }

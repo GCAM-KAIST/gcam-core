@@ -36,7 +36,7 @@
 module_water_L2233.electricity_water <- function(command, ...) {
 
   # Read in 24 L223 file names
-  L223_fileNames <- c("AvgFossilEffKeyword_elec", "GlobalIntTechBackup_elec", "GlobalIntTechCapital_elec",
+  L223_fileNames <- c("AvgFossilEffKeyword_elec", "GlobalIntTechValueFactor_elec", "GlobalIntTechBackup_elec", "GlobalIntTechCapital_elec",
                       "GlobalIntTechEff_elec", "GlobalIntTechLifetime_elec", "GlobalIntTechOMfixed_elec",
                       "GlobalIntTechOMvar_elec", "GlobalIntTechShrwt_elec", "GlobalTechCapture_elec",
                       "GlobalTechCapital_elec", "GlobalTechEff_elec", "GlobalTechInterp_elec",
@@ -99,6 +99,7 @@ module_water_L2233.electricity_water <- function(command, ...) {
              "L2233.GlobalTechCoef_elec_cool",
              "L2233.GlobalIntTechCoef_elec_cool",
              "L2233.AvgFossilEffKeyword_elec_cool",
+             "L2233.GlobalIntTechValueFactor_elec_cool",
              "L2233.GlobalIntTechBackup_elec_cool",
              "L2233.GlobalIntTechEff_elec_cool",
              "L2233.GlobalIntTechLifetime_elec_cool",
@@ -266,7 +267,7 @@ module_water_L2233.electricity_water <- function(command, ...) {
       select(from.supplysector, from.subsector, from.technology, to.supplysector) %>%
       filter(from.supplysector %in% A23.globalinttech$supplysector,
              from.subsector %in% A23.globalinttech$subsector,
-             from.technology %in% A23.globalinttech$technology) %>%
+             from.technology %in% A23.globalinttech$intermittent.technology) %>%
       select(to.supplysector) %>% unique -> L2233.elec_cool_Int_supplysectors
 
     L2233.supplysector_info %>%
@@ -370,7 +371,7 @@ module_water_L2233.electricity_water <- function(command, ...) {
     GlobalTechCapital_elecPassthru %>%
       filter(sector.name == to.supplysector & sector.name %in% A23.globalinttech$supplysector) %>%
       filter(subsector.name == to.subsector & subsector.name %in% A23.globalinttech$subsector) %>%
-      filter(technology == to.technology & technology %in% A23.globalinttech$technology) %>%
+      filter(technology == to.technology & technology %in% A23.globalinttech$intermittent.technology) %>%
       select(LEVEL2_DATA_NAMES[["GlobalTechCapital"]]) ->
       L2233.GlobalIntTechCapital_elec # --OUTPUT--
 
@@ -392,11 +393,12 @@ module_water_L2233.electricity_water <- function(command, ...) {
                                                                      "subsector" = "subsector.name",
                                                                      "stub.technology" = "technology",
                                                                      "year")) %>%
-      mutate(input.cost = capital.overnight * fixed.charge.rate / (capacity.factor * CONV_YEAR_HOURS * CONV_KWH_GJ),
-             capital.coef = 1 / fixed.charge.rate,
-             tracking.market = "capital",
+      mutate(input.cost = capital.overnight * calc_fixed_charge_rate(interest.rate, payback.years) / (capacity.factor * CONV_YEAR_HOURS * CONV_KWH_GJ),
+             capital.ratio = 1,
+             invest.unit.conversion = 1,
+             tracking.market = socioeconomics.EN_CAPITAL_MARKET_NAME,
              depreciation.rate = 1 / 15) %>%
-      select(-capacity.factor, -capital.overnight, -fixed.charge.rate) %>%
+      select(-capacity.factor, -capital.overnight) %>%
       rename(minicam.non.energy.input = input.capital) ->
       L2233.StubTechTrackCapital_elec
     # now remove rooftop_pv from the global tech to avoid double accounting
@@ -411,7 +413,7 @@ module_water_L2233.electricity_water <- function(command, ...) {
     GlobalTechOMfixed_elecPassthru %>%
       filter(sector.name == to.supplysector & sector.name %in% A23.globalinttech$supplysector) %>%
       filter(subsector.name == to.subsector & subsector.name %in% A23.globalinttech$subsector) %>%
-      filter(technology == to.technology & technology %in% A23.globalinttech$technology) %>%
+      filter(technology == to.technology & technology %in% A23.globalinttech$intermittent.technology) %>%
       select(LEVEL2_DATA_NAMES[["GlobalTechOMfixed"]]) ->
       L2233.GlobalIntTechOMfixed_elec # --OUTPUT--
 
@@ -427,7 +429,7 @@ module_water_L2233.electricity_water <- function(command, ...) {
     GlobalTechOMvar_elecPassthru %>%
       filter(sector.name == to.supplysector & sector.name %in% A23.globalinttech$supplysector) %>%
       filter(subsector.name == to.subsector & subsector.name %in% A23.globalinttech$subsector) %>%
-      filter(technology == to.technology & technology %in% A23.globalinttech$technology) %>%
+      filter(technology == to.technology & technology %in% A23.globalinttech$intermittent.technology) %>%
       select(LEVEL2_DATA_NAMES[["GlobalTechOMvar"]]) ->
       L2233.GlobalIntTechOMvar_elec # --OUTPUT--
 
@@ -457,6 +459,7 @@ module_water_L2233.electricity_water <- function(command, ...) {
       tableName <- paste0("L2233.", elecTableName, "_cool")
       elecTable <- L2233.Elec_tables_globaltech_nocost[[which(names(L2233.Elec_tables_globaltech_nocost) == elecTableName)]]
       names(elecTable)[names(elecTable) == "intermittent.technology"] <- "technology"
+      names(elecTable)[names(elecTable) == "backup.intermittent.technology"] <- "technology"
       defCols <- names(elecTable) %in% c("sector.name", "subsector.name", "technology", "year")
       nondataCols <- names(elecTable)[defCols]
       dataCols <- names(elecTable)[!defCols]
@@ -514,7 +517,9 @@ module_water_L2233.electricity_water <- function(command, ...) {
     elec_tech_water_map %>%
       repeat_add_columns(tibble(year = MODEL_YEARS)) %>%
       left_join_error_no_match(L2233.CoolingSystemCosts, by = c("cooling_system", "year")) %>%
-      mutate(fixed.charge.rate = water.COOLING_SYSTEM_FCR, capacity.factor = water.COOLING_SYSTEM_CAPACITY_FACTOR) %>%
+      mutate(interest.rate = water.COOLING_SYSTEM_INTEREST_RATE,
+             payback.years = water.COOLING_SYSTEM_CAP_PAYMENTS,
+             capacity.factor = water.COOLING_SYSTEM_CAPACITY_FACTOR) %>%
       select(-technology) %>%
       rename(sector.name = to.supplysector,
              subsector.name = to.subsector,
@@ -527,13 +532,13 @@ module_water_L2233.electricity_water <- function(command, ...) {
     L2233.GlobalTechCapital_elec_cool_all %>%
       filter(from.supplysector %in% A23.globalinttech$supplysector &
                from.subsector %in% A23.globalinttech$subsector &
-               from.technology %in% A23.globalinttech$technology) %>%
+               from.technology %in% A23.globalinttech$intermittent.technology) %>%
       select(LEVEL2_DATA_NAMES[["GlobalTechCapital"]]) ->
       L2233.GlobalIntTechCapital_elec_cool # --OUTPUT--
     L2233.GlobalTechCapital_elec_cool_all %>%
       filter(!(from.supplysector %in% A23.globalinttech$supplysector &
                  from.subsector %in% A23.globalinttech$subsector &
-                 from.technology %in% A23.globalinttech$technology)) %>%
+                 from.technology %in% A23.globalinttech$intermittent.technology)) %>%
       select(LEVEL2_DATA_NAMES[["GlobalTechCapital"]]) ->
       L2233.GlobalTechCapital_elec_cool # --OUTPUT--
 
@@ -566,14 +571,14 @@ module_water_L2233.electricity_water <- function(command, ...) {
     L2233.GlobalTechCoef_elec_cool_all %>%
       filter(!(from.supplysector %in% A23.globalinttech$supplysector &
                  from.subsector %in% A23.globalinttech$subsector &
-                 from.technology %in% A23.globalinttech$technology)) %>%
+                 from.technology %in% A23.globalinttech$intermittent.technology)) %>%
       select(LEVEL2_DATA_NAMES[["GlobalTechCoef"]]) ->
       L2233.GlobalTechCoef_elec_cool # --OUTPUT--
 
     L2233.GlobalTechCoef_elec_cool_all %>%
       filter(from.supplysector %in% A23.globalinttech$supplysector &
                from.subsector %in% A23.globalinttech$subsector &
-               from.technology %in% A23.globalinttech$technology) %>%
+               from.technology %in% A23.globalinttech$intermittent.technology) %>%
       select(LEVEL2_DATA_NAMES[["GlobalTechCoef"]]) ->
       L2233.GlobalIntTechCoef_elec_cool # --OUTPUT--
 
@@ -730,9 +735,17 @@ module_water_L2233.electricity_water <- function(command, ...) {
       add_units("unitless") ->
       L2233.AvgFossilEffKeyword_elec_cool
 
+    L2233.Elec_tables_globaltech_nocost_$GlobalIntTechValueFactor_elec %>%
+      add_title("Value factor function parameters for intermittent techs") %>%
+      add_units("value.factor.intercept = fraction of PLCOE observed at 0% market share (LCOE is divided by this value);
+                value.factor.slope = % reduction in PLCOE obsrved per % increase in market share") ->
+      L2233.GlobalIntTechValueFactor_elec_cool
+
     L2233.Elec_tables_globaltech_nocost_$GlobalIntTechBackup_elec %>%
-      add_title("Capital costs of backup technologies for intermittent techs") %>%
-      add_units("1975 USD/kW/yr") ->
+      add_title("Backup cost and demand function parameters for intermittent techs") %>%
+      add_units("1975 USD/kW/yr") %>%
+      add_comments("NOTE: this is the previous approach to renewable integration and will not be used by default") %>%
+      add_comments("Assumptions contained within A23.globalinttech_backup") ->
       L2233.GlobalIntTechBackup_elec_cool
 
     L2233.Elec_tables_globaltech_nocost_$GlobalIntTechEff_elec %>%
@@ -1136,6 +1149,7 @@ module_water_L2233.electricity_water <- function(command, ...) {
                 L2233.GlobalTechCoef_elec_cool,
                 L2233.GlobalIntTechCoef_elec_cool,
                 L2233.AvgFossilEffKeyword_elec_cool,
+                L2233.GlobalIntTechValueFactor_elec_cool,
                 L2233.GlobalIntTechBackup_elec_cool,
                 L2233.GlobalIntTechEff_elec_cool,
                 L2233.GlobalIntTechLifetime_elec_cool,

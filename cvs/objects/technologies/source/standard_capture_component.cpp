@@ -58,8 +58,6 @@ StandardCaptureComponent::StandardCaptureComponent()
 {
     mRemoveFraction = 0;
     mStorageCost = 0;
-    mIntensityPenalty = 0;
-    mNonEnergyCostPenalty = 0;
 }
 
 StandardCaptureComponent::~StandardCaptureComponent() {
@@ -76,8 +74,6 @@ void StandardCaptureComponent::copy( const StandardCaptureComponent& aOther ) {
     mTargetGas = aOther.mTargetGas;
     mRemoveFraction = aOther.mRemoveFraction;
     mStorageCost = aOther.mStorageCost;
-    mIntensityPenalty = aOther.mIntensityPenalty;
-    mNonEnergyCostPenalty = aOther.mNonEnergyCostPenalty;
 }
 
 bool StandardCaptureComponent::isSameType( const string& aType ) const {
@@ -102,8 +98,9 @@ const string& StandardCaptureComponent::getXMLName() const {
     return getXMLNameStatic();
 }
 
-const string& StandardCaptureComponent::getName() const {
-    return getXMLNameStatic();
+const gcamstr& StandardCaptureComponent::getName() const {
+    const static gcamstr NAME(getXMLNameStatic());
+    return NAME;
 }
 
 void StandardCaptureComponent::toDebugXML( const int aPeriod, ostream& aOut, Tabs* aTabs ) const {
@@ -111,14 +108,12 @@ void StandardCaptureComponent::toDebugXML( const int aPeriod, ostream& aOut, Tab
     XMLWriteElement( mStorageMarket, "storage-market", aOut, aTabs );
     XMLWriteElement( mRemoveFraction, "remove-fraction", aOut, aTabs );
     XMLWriteElement( mStorageCost, "storage-cost", aOut, aTabs );
-    XMLWriteElement( mIntensityPenalty, "intensity-penalty", aOut, aTabs );
-    XMLWriteElement( mNonEnergyCostPenalty, "non-energy-penalty", aOut, aTabs );
     XMLWriteElement( mSequesteredAmount[ aPeriod ], "sequestered-amount", aOut, aTabs );
     XMLWriteClosingTag( getXMLNameStatic(), aOut, aTabs );
 }
 
-void StandardCaptureComponent::completeInit( const string& aRegionName,
-                                             const string& aSectorName )
+void StandardCaptureComponent::completeInit( const gcamstr& aRegionName,
+                                             const gcamstr& aSectorName )
 {
     // Add the storage market as a dependency of the sector. This is because
     // this sector will have to be ordered first so that the total demand and
@@ -134,9 +129,8 @@ void StandardCaptureComponent::completeInit( const string& aRegionName,
     }
 }
 
-void StandardCaptureComponent::initCalc( const string& aRegionName,
-                                           const string& aSectorName,
-                                           const string& aFuelName,
+void StandardCaptureComponent::initCalc( const gcamstr& aRegionName,
+                                           const gcamstr& aSectorName,
                                            const int aPeriod )
 {
 }
@@ -148,8 +142,8 @@ void StandardCaptureComponent::initCalc( const string& aRegionName,
  * \param aPeriod 
  * \return storage cost
  */
-double StandardCaptureComponent::getStorageCost( const string& aRegionName,
-                                                 const string& aGHGName,
+double StandardCaptureComponent::getStorageCost( const gcamstr& aRegionName,
+                                                 const gcamstr& aGHGName,
                                                  const int aPeriod ) const
 {
     // First check if this component can capture the gas.
@@ -191,7 +185,7 @@ double StandardCaptureComponent::getStorageCost( const string& aRegionName,
  * \param aGHGName 
  * \return remove fraction
  */
-double StandardCaptureComponent::getRemoveFraction( const string& aGHGName ) const {
+double StandardCaptureComponent::getRemoveFraction( const gcamstr& aGHGName ) const {
     return aGHGName == mTargetGas ? mRemoveFraction : 0;
 }
 
@@ -204,8 +198,8 @@ double StandardCaptureComponent::getRemoveFraction( const string& aGHGName ) con
  * \param aPeriod 
  * \return emissions sequestered
  */
-double StandardCaptureComponent::calcSequesteredAmount( const string& aRegionName,
-                                                        const string& aGHGName,
+double StandardCaptureComponent::calcSequesteredAmount( const gcamstr& aRegionName,
+                                                        const gcamstr& aGHGName,
                                                         const double aTotalEmissions,
                                                         const int aPeriod )
 {
@@ -233,7 +227,7 @@ double StandardCaptureComponent::calcSequesteredAmount( const string& aRegionNam
  * \param aPeriod 
  * \return sequestered amount
  */
-double StandardCaptureComponent::getSequesteredAmount( const string& aGHGName,
+double StandardCaptureComponent::getSequesteredAmount( const gcamstr& aGHGName,
                                                        const bool aGetGeologic,
                                                        const int aPeriod ) const 
 {
@@ -242,31 +236,4 @@ double StandardCaptureComponent::getSequesteredAmount( const string& aGHGName,
         return mSequesteredAmount[ aPeriod ];
     }
     return 0;
-}
-
-void StandardCaptureComponent::adjustInputs( const string& aRegionName,
-                                             std::vector<IInput*>& aInputs,
-                                             const int aPeriod ) const
-{
-    // Loop through the inputs and search for energy and non-energy inputs.
-    for( unsigned int i = 0; i < aInputs.size(); ++i ){
-        // Check if the input is an energy input.
-        if( aInputs[ i ]->hasTypeFlag( IInput::ENERGY ) ){
-            /*! \pre Energy input intensity must be greater than zero. */
-            double currIntensity = aInputs[ i ]->getCoefficient( aPeriod );
-            assert( currIntensity > 0 );
-            
-            // Calculate effective intensity, reduces the intensity by a penalty.
-            aInputs[ i ]->setCoefficient( currIntensity * ( 1 + mIntensityPenalty ), aPeriod );
-        }
-        // Check for capital inputs 
-        else if( aInputs[ i ]->hasTypeFlag( IInput::CAPITAL ) ){
-            double currCost = aInputs[ i ]->getPrice( aRegionName, aPeriod);
-            /*! \pre Non-energy cost must be positive for a penalty to be
-            *        applied. 
-            */
-            assert( currCost > 0 );
-            aInputs[ i ]->setPrice( aRegionName, currCost * ( 1 + mNonEnergyCostPenalty ), aPeriod );
-        }
-    }
 }

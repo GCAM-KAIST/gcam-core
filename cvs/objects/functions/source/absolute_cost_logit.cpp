@@ -75,16 +75,12 @@ void AbsoluteCostLogit::toDebugXML( const int aPeriod, ostream& aOut, Tabs* aTab
     XMLWriteClosingTag( getXMLNameStatic(), aOut, aTabs );
 }
 
-void AbsoluteCostLogit::initCalc( const string& aRegionName, const string& aContainerName,
-                                  const bool aShouldShareIncreaseWithValue, const int aPeriod)
+void AbsoluteCostLogit::initCalc( const gcamstr& aRegionName, const string& aContainerName,
+                                  const int aPeriod)
 {
-    if( mLogitExponent[ aPeriod ] != 0.0 && aShouldShareIncreaseWithValue ^ ( mLogitExponent[ aPeriod ] > 0.0 ) ) {
-        ILogger& mainlog = ILogger::getLogger( "main_log" );
-        mainlog.setLevel( ILogger::WARNING );
-        mainlog << "Inversed sign on logit exponent: " << mLogitExponent[ aPeriod ]
-                << " when we expect the unormalized share to increase with an increase in value is " << aShouldShareIncreaseWithValue
-                << endl;
-    }
+    // note ideally we would check the user read in the appropriate sign for the logit
+    // exponent however it has gotten too difficult to know what that should be within
+    // the discrete choice function itself
     
     if( !mParsedBaseValue && mBaseValue <= 0.0 ) {
         bool isFuturePer = aPeriod > scenario->getModeltime()->getFinalCalibrationPeriod();

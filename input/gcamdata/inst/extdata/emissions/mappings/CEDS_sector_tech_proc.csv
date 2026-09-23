@@ -112,16 +112,16 @@ industrial processes,foams,foams,industrial processes,foams,foams,,,foams,all,al
 industrial processes,nitric acid,nitric acid,industrial processes,nitric acid,nitric acid,chemicals,process,chemicals,nitric acid,nitric acid,chemicals,,,,Nitric and Adipic Acid Production,
 industrial processes,semiconductors,semiconductors,industrial processes,semiconductors,semiconductors,,,semiconductors,all,all,semiconductors,,,,Semiconductor Manufacturing,
 industrial processes,solvents,solvents,industrial processes,solvents,solvents,solvents,process,solvents,all,all,solvents,,,,Solvent Use,
-industry_energy,biomass,biomass,industrial energy use,biomass,biomass,industry_energy,biomass,industry_energy,biomass,biomass,industry_energy,ind,industry_energy,biomass,,ind_bio
-industry_energy,coal,coal,industrial energy use,coal,coal,industry_energy,coal,industry_energy,coal,coal,industry_energy,ind,industry_energy,coal,,ind_coal
-industry_energy,gas,gas,industrial energy use,gas,gas,industry_energy,gas,industry_energy,gas,gas,industry_energy,ind,industry_energy,gas,,ind_gas
-industry_energy,refined liquids,refined liquids,industrial energy use,refined liquids,refined liquids,industry_energy,refined liquids,industry_energy,refined liquids,refined liquids,industry_energy,ind,industry_energy,refined liquids,,ind_oil
+industry_energy,biomass,biomass,other industrial energy use,biomass,biomass,industry_energy,biomass,industry_energy,biomass,biomass,industry_energy,ind,industry_energy,biomass,,ind_bio
+industry_energy,coal,coal,other industrial energy use,coal,coal,industry_energy,coal,industry_energy,coal,coal,industry_energy,ind,industry_energy,coal,,ind_coal
+industry_energy,gas,gas,other industrial energy use,gas,gas,industry_energy,gas,industry_energy,gas,gas,industry_energy,ind,industry_energy,gas,,ind_gas
+industry_energy,refined liquids,refined liquids,other industrial energy use,refined liquids,refined liquids,industry_energy,refined liquids,industry_energy,refined liquids,refined liquids,industry_energy,ind,industry_energy,refined liquids,,ind_oil
 Legumes,,,Legumes,,,,,,,,,,,,Cropland Management,
 MiscCrop,,,MiscCrop,,,,,,,,,,,,Cropland Management,
 NutsSeeds,,,NutsSeeds,,,,,,,,,,,,Cropland Management,
-N fertilizer,coal,coal,N fertilizer,coal,coal,industry_energy,coal,industry_energy,coal,coal,industry_energy,ind,industry_energy,coal,,
-N fertilizer,gas,gas,N fertilizer,gas,gas,industry_energy,gas,industry_energy,gas,gas,industry_energy,ind,industry_energy,gas,,
-N fertilizer,refined liquids,refined liquids,N fertilizer,refined liquids,refined liquids,industry_energy,refined liquids,industry_energy,refined liquids,refined liquids,industry_energy,ind,industry_energy,refined liquids,,
+ammonia,coal,coal,ammonia,coal,coal,industry_energy,coal,industry_energy,coal,coal,industry_energy,ind,industry_energy,coal,,
+ammonia,gas,gas,ammonia,gas,gas,industry_energy,gas,industry_energy,gas,gas,industry_energy,ind,industry_energy,gas,,
+ammonia,refined liquids,refined liquids,ammonia,refined liquids,refined liquids,industry_energy,refined liquids,industry_energy,refined liquids,refined liquids,industry_energy,ind,industry_energy,refined liquids,,
 OilCrop,,,OilCrop,,,,,,,,,,,,Cropland Management,
 OtherGrain,,,OtherGrain,,,,,,,,,,,,Cropland Management,
 out_resources,coal,coal,out_resources,coal,coal,coal,process,coal,all,all,coal,,,,Coal Mining Activities,
@@ -129,8 +129,8 @@ out_resources,crude oil,crude oil,out_resources,crude oil,crude oil,oil_gas,proc
 out_resources,unconventional oil,unconventional oil,out_resources,unconventional oil,unconventional oil,oil_gas,process,oil_gas,all,all,oil_gas,,,,Natural Gas and Oil Systems,
 out_resources,natural gas,natural gas,out_resources,natural gas,natural gas,oil_gas,process,oil_gas,all,all,oil_gas,,,,Natural Gas and Oil Systems,
 OilPalm,,,OilPalm,,,,,,,,,,,,Cropland Management,
-Passenger,Air Domestic_All,refined liquids,trn_pass,Domestic Aviation,Liquids,trn_domestic air,refined liquids,trn_air,all,refined liquids,trn_domestic ship,tra,trn_air,refined liquids,,trn_air
-Passenger,Air International_All,refined liquids,trn_aviation_intl,International Aviation,Liquids,trn_intl_air,refined liquids,trn_air,all,refined liquids,trn_intl_air,tra,trn_air,refined liquids,,
+Passenger,Air Domestic_All,refined liquids,trn_pass,Domestic Aviation,Liquids,trn_domestic air,refined liquids,trn_air,all,refined liquids,trn_domestic air,tra,trn_air,refined liquids,,trn_air
+Passenger,Air International_All,refined liquids,trn_aviation_intl,International Aviation,Liquids,trn_intl_air,refined liquids,trn_air,all,refined liquids,trn_intl_air,tra,trn_air,refined liquids,,trn_air
 Passenger,Bus_All,gas,trn_pass_road,Bus,NG,trn_road,gas,trn_road,gas,gas,trn_road,tra,trn_road,gas,,trn_gas
 Passenger,Bus_All,refined liquids,trn_pass_road,Bus,Liquids,trn_road,refined liquids,trn_road,refined liquids,refined liquids,trn_road,tra,trn_road,refined liquids,,trn_oil
 Passenger,Bus_Heavy Bus,gas,trn_pass_road_bus,Heavy Bus,NG,trn_road,gas,trn_road,gas,gas,trn_road,tra,trn_road,gas,,trn_gas
@@ -180,18 +180,18 @@ Poultry,Mixed,FeedCrops,Poultry,Mixed,FeedCrops,Animals,process,Poultry,all,all,
 Poultry,Mixed,FodderHerb_Residue,Poultry,Mixed,FodderHerb_Residue,Animals,process,Poultry,all,all,Animals,,Poultry,all,Livestock,
 Poultry,Mixed,Pasture_FodderGrass,Poultry,Mixed,Pasture_FodderGrass,Animals,process,Poultry,all,all,Animals,,Poultry,all,Livestock,
 Poultry,Mixed,Scavenging_Other,Poultry,Mixed,Scavenging_Other,Animals,process,Poultry,all,all,Animals,,Poultry,all,Livestock,
-resid cooling,electricity,electricity,resid cooling,electricity,electricity,,,,,,,,,,Refrigeration and Air Conditioning,
-resid cooling,gas,gas,resid cooling,gas,gas,bld_resid,gas,bld_resid,gas,gas,bld,dom,bld_resid,gas,Refrigeration and Air Conditioning,bld_gas
-resid heating,biomass,biomass,resid heating,biomass,biomass,bld_resid,biomass,bld_resid,biomass,biomass,bld,dom,bld_resid,biomass,,bld_bio
-resid heating,coal,coal,resid heating,coal,coal,bld_resid,coal,bld_resid,coal,coal,bld,dom,bld_resid,coal,,bld_coal
-resid heating,gas,gas,resid heating,gas,gas,bld_resid,gas,bld_resid,gas,gas,bld,dom,bld_resid,gas,,bld_gas
-resid heating,refined liquids,refined liquids,resid heating,refined liquids,refined liquids,bld_resid,refined liquids,bld_resid,refined liquids,refined liquids,bld,dom,bld_resid,refined liquids,,bld_oil
-resid heating,traditional biomass,traditional biomass,resid heating,traditional biomass,traditional biomass,bld_resid,biomass,bld_resid,biomass,biomass,bld,dom,bld_resid,biomass,,bld_tradbio
-resid others,biomass,biomass,resid others,biomass,biomass,bld_resid,biomass,bld_resid,biomass,biomass,bld,dom,bld_resid,biomass,,bld_bio
-resid others,coal,coal,resid others,coal,coal,bld_resid,coal,bld_resid,coal,coal,bld,dom,bld_resid,coal,,bld_coal
-resid others,gas,gas,resid others,gas,gas,bld_resid,gas,bld_resid,gas,gas,bld,dom,bld_resid,gas,,bld_gas
-resid others,refined liquids,refined liquids,resid others,refined liquids,refined liquids,bld_resid,refined liquids,bld_resid,refined liquids,refined liquids,bld,dom,bld_resid,refined liquids,,bld_oil
-resid others,traditional biomass,traditional biomass,resid others,traditional biomass,traditional biomass,bld_resid,biomass,bld_resid,biomass,biomass,bld,dom,bld_resid,biomass,,bld_bio
+resid cooling modern,electricity,electricity,resid cooling modern,electricity,electricity,,,,,,,,,,Refrigeration and Air Conditioning,
+resid cooling modern,gas,gas,resid cooling modern,gas,gas,bld_resid,gas,bld_resid,gas,gas,bld,dom,bld_resid,gas,Refrigeration and Air Conditioning,bld_gas
+resid heating modern,biomass,biomass,resid heating modern,biomass,biomass,bld_resid,biomass,bld_resid,biomass,biomass,bld,dom,bld_resid,biomass,,bld_bio
+resid heating coal,coal,coal,resid heating coal,coal,coal,bld_resid,coal,bld_resid,coal,coal,bld,dom,bld_resid,coal,,bld_coal
+resid heating modern,gas,gas,resid heating modern,gas,gas,bld_resid,gas,bld_resid,gas,gas,bld,dom,bld_resid,gas,,bld_gas
+resid heating modern,refined liquids,refined liquids,resid heating modern,refined liquids,refined liquids,bld_resid,refined liquids,bld_resid,refined liquids,refined liquids,bld,dom,bld_resid,refined liquids,,bld_oil
+resid heating TradBio,traditional biomass,traditional biomass,resid heating TradBio,traditional biomass,traditional biomass,bld_resid,biomass,bld_resid,biomass,biomass,bld,dom,bld_resid,biomass,,bld_tradbio
+resid others modern,biomass,biomass,resid others modern,biomass,biomass,bld_resid,biomass,bld_resid,biomass,biomass,bld,dom,bld_resid,biomass,,bld_bio
+resid others coal,coal,coal,resid others coal,coal,coal,bld_resid,coal,bld_resid,coal,coal,bld,dom,bld_resid,coal,,bld_coal
+resid others modern,gas,gas,resid others modern,gas,gas,bld_resid,gas,bld_resid,gas,gas,bld,dom,bld_resid,gas,,bld_gas
+resid others modern,refined liquids,refined liquids,resid others modern,refined liquids,refined liquids,bld_resid,refined liquids,bld_resid,refined liquids,refined liquids,bld,dom,bld_resid,refined liquids,,bld_oil
+resid others TradBio,traditional biomass,traditional biomass,resid others TradBio,traditional biomass,traditional biomass,bld_resid,biomass,bld_resid,biomass,biomass,bld,dom,bld_resid,biomass,,bld_bio
 Rice,,,Rice,,,,,,,,,,,,Rice Cultivation,
 RootTuber,,,RootTuber,,,,,,,,,,,,Cropland Management,
 SheepGoat,Mixed,FeedCrops,SheepGoat,Mixed,FeedCrops,Animals,process,SheepGoat,all,all,Animals,,SheepGoat,all,Livestock,

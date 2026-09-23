@@ -67,7 +67,7 @@ mAvgProdLifetime( 0 )
 ReserveSubResource::~ReserveSubResource() {
 }
 
-void ReserveSubResource::completeInit( const std::string& aRegionName, const std::string& aResourceName,
+void ReserveSubResource::completeInit( const gcamstr& aRegionName, const gcamstr& aResourceName,
                                        const IInfo* aResourceInfo )
 {
     if( mAvgProdLifetime <= 0 ) {
@@ -81,6 +81,28 @@ void ReserveSubResource::completeInit( const std::string& aRegionName, const std
     currInfo->setDouble( "average-production-lifetime", mAvgProdLifetime );
     SubResource::completeInit( aRegionName, aResourceName, currInfo );
     delete currInfo;
+}
+
+/*!
+ * \brief Perform any initializations needed for each period.
+ * \details Only needed in ReserveSubResource to do some additional error checking
+ * \param aRegionName Region name.
+ * \param aResourceName Resource name.
+ * \param aPeriod Model aPeriod
+ */
+void ReserveSubResource::initCalc( const gcamstr& aRegionName, const gcamstr& aResourceName,
+                            const IInfo* aResourceInfo, const int aPeriod )
+{
+    SubResource::initCalc(aRegionName, aResourceName, aResourceInfo, aPeriod);
+    
+    // ensure either both or neither cal reserve and production are set
+    if(mCalReserve[aPeriod].isInited() ^ (mCalProduction[aPeriod] >= 0.0)) {
+        ILogger& mainLog = ILogger::getLogger( "main_log" );
+        mainLog.setLevel( ILogger::SEVERE );
+        mainLog << "In " << aRegionName << " resource " << aResourceName << ", " << mName
+                << "please ensure either both or neither calibrated reserve and production are set." << endl;
+        abort();
+    }
 }
 
 /*! \brief Get the XML node name for output to XML.
@@ -107,10 +129,33 @@ const std::string& ReserveSubResource::getXMLNameStatic() {
     return XML_NAME;
 }
 
+/*!
+ * \brief Calculate the cumulative supply.
+ * \details Mostly just calling the base class implementation, however we need to adjust the lookup price
+ *          to account for a changing capital investment cost.
+ * \param aRegionName The name of the containing region name.
+ * \param aResourceName The name of the containing resource.
+ * \param aPrice The market price for aResourceName.
+ * \param aPeriod The model period.
+ */
+void ReserveSubResource::cumulsupply(const gcamstr& aRegionName,
+                                     const gcamstr& aResourceName,
+                                     double aPrice,
+                                     int aPeriod )
+{
+    ResourceReserveTechnology* rsrcTech = static_cast<ResourceReserveTechnology*>(mTechnology->getNewVintageTechnology(aPeriod));
+    rsrcTech->calcCost( aRegionName, aResourceName, aPeriod );
+    // never adjust a price above the top of the supply curve as that is not really investment
+    double lookupPrice = std::min(aPrice + mPriceAdder[ aPeriod ] - rsrcTech->getCost( aPeriod ),
+                                  mGrade.back()->getCost(aPeriod));
+    double priceAdjustment = rsrcTech->calcInvestmentPrice(lookupPrice, aRegionName, aPeriod);
+    SubResource::cumulsupply(aRegionName, aResourceName, aPrice + priceAdjustment, aPeriod);
+}
+
 //! calculate annual supply
 /*! Takes into account short-term capacity limits.
 Note that cumulsupply() must be called before calling this function. */
-void ReserveSubResource::annualsupply( const string& aRegionName, const string& aResourceName,
+void ReserveSubResource::annualsupply( const gcamstr& aRegionName, const gcamstr& aResourceName,
                                        int aPeriod, double aPrice )
 {
     double prevCumul = aPeriod > 0 ? mCumulProd[ aPeriod - 1] : 0.0;
@@ -121,9 +166,18 @@ void ReserveSubResource::annualsupply( const string& aRegionName, const string& 
     // even when not calibrating
     double fixedScaleFactor = 1.0;
     double fixedOutput = 0;
-    double nonTechInvestmentCost = mEffectivePrice[ aPeriod ] - mTechnology->getNewVintageTechnology( aPeriod )->getCost( aPeriod );
+    double marginalPrice = aPrice + mPriceAdder[aPeriod];
     for( auto techIter = mTechnology->getVintageBegin( aPeriod ); techIter != mTechnology->getVintageEnd( aPeriod ); ++techIter ) {
-        fixedOutput += (*techIter).second->getFixedOutput( aRegionName, aResourceName, false, "", nonTechInvestmentCost, aPeriod );
+        // for new investment we need to set the grade cost so the technology can track
+        // investment costs and in most cases this is the same as the marginalPrice
+        // however we need to cover an edge case where the price is above the end of the
+        // supply curve in which case we need to cap the investment cost at that top grade cost
+        // existing vintages use marginalPrice for shutdown decision so they should always see
+        // the full marginalPrice
+        double cappedMarginalPrice = techIter == mTechnology->getVintageBegin( aPeriod ) ?
+            std::min(marginalPrice, mGrade.back()->getCost(aPeriod)) :
+            marginalPrice;
+        fixedOutput += (*techIter).second->getFixedOutput( aRegionName, aResourceName, false, "", cappedMarginalPrice, aPeriod );
     }
     if( mCalProduction[ aPeriod ] != -1 ) {
         // Calculate the ratio from the actual production to the calibrated production

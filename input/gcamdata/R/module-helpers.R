@@ -190,15 +190,20 @@ set_years <- function(data) {
   . <- NULL
 
   assert_that(is_tibble(data))
-  year_recode <- c("start-year" =  min(MODEL_BASE_YEARS),
-                   "final-calibration-year" = max(MODEL_BASE_YEARS),
-                   "final-historical-year" = as.numeric(max(HISTORICAL_YEARS)),
-                   "initial-future-year" = min(MODEL_FUTURE_YEARS),
-                   "initial-nonhistorical-year" = min(MODEL_YEARS[MODEL_YEARS > max(HISTORICAL_YEARS)]),
-                   "end-year" = max(MODEL_FUTURE_YEARS))
+
+  update.YEAR_RECODE <- YEAR_RECODE
+  if( UNDER_TIMESHIFT ) {
+    update.YEAR_RECODE <- c("start-year" =  min(MODEL_BASE_YEARS),
+                            "final-calibration-year" = max(MODEL_BASE_YEARS),
+                            "final-historical-year" = as.numeric(max(HISTORICAL_YEARS)),
+                            "initial-future-year" = min(MODEL_FUTURE_YEARS),
+                            "initial-nonhistorical-year" = min(MODEL_YEARS[MODEL_YEARS > max(HISTORICAL_YEARS)]),
+                            "end-year" = max(MODEL_FUTURE_YEARS))
+  }
+
   if(nrow(data)) {
     data %>%
-      dplyr::mutate_if(list(~ any(. %in% names(year_recode))), list(~ dplyr::recode(., !!!year_recode, .default=suppressWarnings(as.numeric(.))))) ->
+      dplyr::mutate_if(list(~ any(. %in% names(update.YEAR_RECODE))), list(~ dplyr::recode(., !!!update.YEAR_RECODE, .default=suppressWarnings(as.numeric(.))))) ->
       data
   }
   data
@@ -361,10 +366,14 @@ replace_GLU <- function(d, map, GLU_pattern = "^GLU[0-9]{3}$") {
 #'
 #' @param data = input data tibble to receive carbon info
 #' @param carbon_info_table = table with veg and soil carbon densities, and mature.age
+#' @param Min_Soil_C_at_Cropland If TRUE (default) using cropland soil carbon density as a minimum threshold in land policy
 #' @param matchvars =  a character vector for by = in left_join(data, carbon_info_table, by = ...)
+#'
 #' @return the original table with carbon density info added
 #' @importFrom dplyr left_join mutate rename
-add_carbon_info <- function( data, carbon_info_table, matchvars = c("region", "GLU", "Cdensity_LT" = "Land_Type")) {
+add_carbon_info <- function( data, carbon_info_table,
+                             matchvars = c("region", "GLU", "Cdensity_LT" = "Land_Type"),
+                             Min_Soil_C_at_Cropland = TRUE) {
 
   GCAM_region_names <- veg_c <- soil_c <- hist.veg.carbon.density <- hist.soil.carbon.density <-
     mature.age <- GCAM_region_ID <- NULL  # silence package check notes
@@ -386,7 +395,32 @@ add_carbon_info <- function( data, carbon_info_table, matchvars = c("region", "G
            veg.carbon.density = hist.veg.carbon.density,
            soil.carbon.density = hist.soil.carbon.density,
            min.veg.carbon.density = aglu.MIN_VEG_CARBON_DENSITY,
-           min.soil.carbon.density = aglu.MIN_SOIL_CARBON_DENSITY)
+           min.soil.carbon.density = aglu.MIN_SOIL_CARBON_DENSITY) ->
+    data1
+
+  if (Min_Soil_C_at_Cropland == F) {
+
+    return(data1)
+
+  } else{
+
+    # Min_Soil_C_at_Cropland == TRUE so adding min C as cropland for soil
+    # when NA first using pasture data and then using Default_Cropland_Soil_C_Density
+    Default_Cropland_Soil_C_Density = 9
+
+    data1 %>%
+      left_join(
+        carbon_info_table %>%
+          filter(Land_Type %in% c("Cropland", "Pasture")) %>%
+          select(GCAM_region_ID, GLU, soil_c, Land_Type) %>%
+          spread(Land_Type, soil_c), by = c("GCAM_region_ID", "GLU")) %>%
+      mutate(min.soil.carbon.density = if_else(is.na(Cropland), Pasture, Cropland) ) %>%
+      replace_na(list(min.soil.carbon.density = Default_Cropland_Soil_C_Density)) ->
+      data2
+
+    return(data2)
+  }
+
 }
 
 #' reduce_mgd_carbon
@@ -394,12 +428,12 @@ add_carbon_info <- function( data, carbon_info_table, matchvars = c("region", "G
 #' Reduce the carbon density of a managed land type from its unmanaged land
 #' type's carbon density using constant multipliers
 #'
-#' @param data Unput data tibble to adjust carbon densities for
+#' @param data Input data tibble to adjust carbon densities for
 #' @param LTfor Land_Type name to use for Forest land types
 #' @param LTpast Land_Type name to use for Pasture land types
 #' @return The original table with carbon density adjusted for the managed land types
 #' @importFrom dplyr mutate
-reduce_mgd_carbon <- function( data, LTfor = "Forest", LTpast = "Pasture") {
+reduce_mgd_carbon <- function( data, LTfor = c(aglu.FOREST_NODE_NAMES), LTpast = "Pasture") {
 
   Land_Type <- hist.veg.carbon.density <- veg.carbon.density <-
     hist.soil.carbon.density <- soil.carbon.density <- NULL # silence package check notes
@@ -409,10 +443,10 @@ reduce_mgd_carbon <- function( data, LTfor = "Forest", LTpast = "Pasture") {
            veg.carbon.density = if_else(Land_Type == LTpast, veg.carbon.density * aglu.CVEG_MULT_UNMGDPAST_MGDPAST, veg.carbon.density),
            hist.soil.carbon.density = if_else(Land_Type == LTpast, hist.soil.carbon.density * aglu.CSOIL_MULT_UNMGDPAST_MGDPAST, hist.soil.carbon.density),
            soil.carbon.density = if_else(Land_Type == LTpast, soil.carbon.density * aglu.CSOIL_MULT_UNMGDPAST_MGDPAST, soil.carbon.density),
-           hist.veg.carbon.density = if_else(Land_Type == LTfor, hist.veg.carbon.density * aglu.CVEG_MULT_UNMGDFOR_MGDFOR, hist.veg.carbon.density),
-           veg.carbon.density = if_else(Land_Type == LTfor, veg.carbon.density * aglu.CVEG_MULT_UNMGDFOR_MGDFOR, veg.carbon.density),
-           hist.soil.carbon.density = if_else(Land_Type == LTfor, hist.soil.carbon.density * aglu.CSOIL_MULT_UNMGDFOR_MGDFOR, hist.soil.carbon.density),
-           soil.carbon.density = if_else(Land_Type == LTfor, soil.carbon.density * aglu.CSOIL_MULT_UNMGDFOR_MGDFOR, soil.carbon.density))
+           hist.veg.carbon.density = if_else(Land_Type %in% LTfor, hist.veg.carbon.density * aglu.CVEG_MULT_UNMGDFOR_MGDFOR, hist.veg.carbon.density),
+           veg.carbon.density = if_else(Land_Type %in% LTfor, veg.carbon.density * aglu.CVEG_MULT_UNMGDFOR_MGDFOR, veg.carbon.density),
+           hist.soil.carbon.density = if_else(Land_Type %in% LTfor, hist.soil.carbon.density * aglu.CSOIL_MULT_UNMGDFOR_MGDFOR, hist.soil.carbon.density),
+           soil.carbon.density = if_else(Land_Type %in% LTfor, soil.carbon.density * aglu.CSOIL_MULT_UNMGDFOR_MGDFOR, soil.carbon.density))
 }
 
 
@@ -463,7 +497,7 @@ get_ssp_regions <- function(pcGDP, reg_names, income_group,
 #' Takes a wide format tibble with years as columns, coverts to long format, and
 #' ensures values are filled in for all \code{out_years} using the following rules:
 #'   - Linearly interpolated for missing values that have end points
-#'   - Extrapolated using an exponential decay function paramaterized by the columns
+#'   - Extrapolated using an exponential decay function parameterized by the columns
 #'     \code{improvement.rate} and \code{improvement.max} using the following formulation
 #'     \code{v_0*max+(v_0-v_0*max)*(1-rate)^(y-y_0)}
 #'   - For rows that specify a char value in the column \code{improvement.shadow.technology}
@@ -487,7 +521,7 @@ get_ssp_regions <- function(pcGDP, reg_names, income_group,
 #' @importFrom tidyr complete
 #' @importFrom assertthat assert_that
 #' @author Pralit Patel
-fill_exp_decay_extrapolate <- function(d, out_years) {
+fill_exp_decay_extrapolate <- function(d, out_years, tech_colnames = c("supplysector", "subsector", "technology")){
   . <- value <- year <- improvement.rate <- improvement.max <-
     improvement.shadow.technology <- technology <- year_base <-
     value_base <- shadow.value <- NULL  # silence package check notes
@@ -521,7 +555,7 @@ fill_exp_decay_extrapolate <- function(d, out_years) {
     select(-year, -value) %>%
     distinct() %>%
     repeat_add_columns(tibble(year=c(unique(c(d$year, out_years))))) %>%
-    left_join(d, by=names(.)) %>%
+    left_join(d, by=names(.), relationship = "many-to-many") %>%
     # for the purposes of interpolating (and later extrapolating) we would like
     # to just group by everything except year and value
     dplyr::group_by_at(dplyr::vars(-year, -value)) %>%
@@ -562,12 +596,14 @@ fill_exp_decay_extrapolate <- function(d, out_years) {
 
   # Now we can calculate the exponential decay extrapolation for technologies that
   # were shadowing another
+  colnames_for_join <- c(tech_colnames, "year")
+  names(colnames_for_join) <- sub("technology", "improvement.shadow.technology", colnames_for_join)
   d_nonshadowed %>%
     # Merge the "shadow" technologies onto those that specified one in the "improvement.shadow.technology"
-    select(technology, year, value) %>%
+    select(c(tech_colnames), year, value) %>%
     rename(shadow.value = value) %>%
     left_join_error_no_match(d_extrap %>% filter(!is.na(improvement.shadow.technology)), .,
-                             by = c("improvement.shadow.technology" = "technology", "year" = "year")) %>%
+                             by = colnames_for_join) %>%
     # figure out the last specified year from which we will be extrapolating
     # (adding a -Inf in case there are no extrapolation years, to avoid a warning)
     mutate(year_base = max(c(-Inf, year[!is.na(value)])),
@@ -622,7 +658,7 @@ downscale_FAO_country <- function(data, country_name, dissolution_year, years = 
   ctry_years <- years[years < dissolution_year]
   yrs <- as.character(c(ctry_years, dissolution_year))
   data %>%
-    select(item, element, yrs) %>%
+    select(item, element, tidyr::all_of(yrs)) %>%
     group_by(item, element) %>%
     summarise_all(sum) %>%
     ungroup ->
@@ -647,24 +683,54 @@ downscale_FAO_country <- function(data, country_name, dissolution_year, years = 
 #'
 #' @param x A data frame contain the variable for calculation
 #' @param periods An odd number of the periods in MA. The default is 5, i.e., 2 lags and 2 leads
+#' @param NA_RM If TRUE, remove NA in calculating mean, otherwise returning NA
 #'
 #' @return A data frame
 #' @export
 
-Moving_average <- function(x, periods = 5){
+Moving_average <- function(x, periods = 5, NA_RM = TRUE){
   if (periods == 1) {
     return(x)
   }
 
-  if ((periods %% 2) == 0) {
-    stop("Periods should be an odd value")
-  } else{
-    (x +
-       Reduce(`+`, lapply(seq(1, (periods -1 )/2), function(a){lag(x, n = a)})) +
-       Reduce(`+`,lapply(seq(1, (periods -1 )/2), function(a){lead(x, n = a)}))
-    )/periods
-  }
+  assert_that((periods %% 2) == 1, msg = "Periods should be an odd value")
+
+
+  #new method to allow na.rm in mean calculation
+  c(lapply(seq((periods -1 )/2, 1), function(a){lag(x, n = a)}),
+    list(x),
+    lapply(seq(1, (periods -1 )/2), function(a){lead(x, n = a)})) %>% unlist %>%
+    matrix(ncol = periods) %>%
+    rowMeans(na.rm = NA_RM)
+
 }
+
+#' Moving average lagged
+#' @description function to calculate moving average using only preceding values
+#'
+#' @param x A data frame contain the variable for calculation
+#' @param periods An odd number of the periods in MA. The default is 5, i.e.,
+#' 4 preceding years and the current year
+#'
+#' @return A data frame with moving average
+#' @export
+#' @author Hassan Niazi, May 2024
+
+Moving_average_lagged <- function(x, periods = 5){
+  if (periods == 1) {
+    return(x)
+  }
+
+  assert_that((periods %% 2) == 1, msg = "Periods should be an odd value")
+  assert_that(length(x) >= periods,
+              msg = "The length of the timeseries should be at least equal to the number of periods")
+
+  (x +
+      Reduce(`+`, lapply(seq(1, periods - 1), function(a) {lag(x, n = a)}))
+  ) / periods
+
+}
+
 
 # Function to dissaggregate dissolved regions in historical years ----
 # copyed in gcamdata
@@ -714,12 +780,11 @@ FAO_AREA_DISAGGREGATE_HIST_DISSOLUTION <-
 
 #' FAO_AREA_DISAGGREGATE_HIST_DISSOLUTION_ALL
 #'
-#' @param .DF
+#' @param .DF The data.frame to disaggregate
 #' @param SUDAN2012_BREAK If T break Sudan before 2012 based on 2013- 2016 data
 #' @param SUDAN2012_MERGE If T merge South Sudan into Sudan
 #'
 #' @return data with historical periods of dissolved region disaggregated to small pieces.
-
 FAO_AREA_DISAGGREGATE_HIST_DISSOLUTION_ALL <- function(.DF,
                                                        SUDAN2012_BREAK = F,
                                                        SUDAN2012_MERGE = T){
@@ -806,6 +871,64 @@ FAO_AREA_DISAGGREGATE_HIST_DISSOLUTION_ALL <- function(.DF,
 
 }
 
+#' Balance gross trade
+#' @description Scale gross export and import in all regions to make them equal at the world level.
+#'
+#' @param .DF An input dataframe with an element col including Import and Export
+#' @param .MIN_TRADE_PROD_RATIO Trade will be removed if world total export or import over production is smaller than .MIN_TRADE_PROD_RATIO, 0.01 default value
+#' @param .Reg_VAR Region variable name; default is area_code
+#' @param .GROUP_VAR Group variable; default is item_code and year
+#'
+#' @return The same dataframe with balanced world export and import.
+
+
+GROSS_TRADE_ADJUST <- function(.DF,
+                               .MIN_TRADE_PROD_RATIO = 0.01,
+                               .Reg_VAR = 'area_code',
+                               .GROUP_VAR = c("item_code", "year")){
+
+  element <- value <- Export <- Import <- Production <- ExportScaler <-
+    ImportScaler <-
+
+    # assert .DF structure
+    assertthat::assert_that(all(c("element", .GROUP_VAR) %in% names(.DF)))
+  assertthat::assert_that(dplyr::is.grouped_df(.DF) == F)
+  assertthat::assert_that(all(c("Import", "Export", "Production") %in%
+                                c(.DF %>% distinct(element) %>% pull)))
+
+  .DF %>%
+    # Join ExportScaler and ImportScaler
+    left_join(
+      .DF %>%
+        spread(element, value) %>%
+        dplyr::group_by_at(vars(dplyr::all_of(.GROUP_VAR))) %>%
+        # filter out items with zero world trade or production
+        # and replace na to zero later for scaler
+        replace_na(list(Export = 0, Import = 0, Production = 0)) %>%
+        filter(sum(Export) != 0, sum(Import) != 0, sum(Production) != 0) %>%
+        # world trade should be later than .MIN_TRADE_PROD_RATIO to have meaningful data
+        # depending on item group, .MIN_TRADE_PROD_RATIO can be set differently
+        filter(sum(Export) / sum(Production) > .MIN_TRADE_PROD_RATIO) %>%
+        filter(sum(Import) / sum(Production) > .MIN_TRADE_PROD_RATIO) %>%
+        # finally,
+        # use average gross trade value to calculate trade scaler
+        # the trade scalers will be applied to all regions
+        mutate(ExportScaler = (sum(Export) + sum(Import))/ 2 / sum(Export),
+               ImportScaler = (sum(Export) + sum(Import))/ 2 / sum(Import)) %>%
+        select(dplyr::all_of(c(.Reg_VAR, .GROUP_VAR)), ExportScaler, ImportScaler) %>%
+        ungroup(),
+      by = c(dplyr::all_of(c(.Reg_VAR, .GROUP_VAR)))) %>%
+    replace_na(list(ExportScaler = 0, ImportScaler = 0)) %>%
+    # If world export, import, or prod is 0, trade will be zero
+    mutate(value = case_when(
+      element %in% c("Export") ~ value * ExportScaler,
+      element %in% c("Import") ~ value * ImportScaler,
+      TRUE ~ value)) %>%
+    select(-ExportScaler, -ImportScaler)
+
+}
+
+
 #' evaluate_smooth_res_curve
 #'
 #' Helper function to calculate the smooth renewable resource supply available at a particular price point from
@@ -853,6 +976,7 @@ smooth_res_curve_approx_error <- function(curve.exponent, mid.price, base.price,
   crossprod(error, error)
 
 }
+
 
 #' NEI_to_GCAM
 #'
@@ -907,15 +1031,6 @@ NEI_to_GCAM <- function(NEI_data, CEDS_GCAM_fuel, NEI_pollutant_mapping, names) 
 
 }
 
-#' compute_BC_OC
-#'
-#' Helper function to compute BC and OC EFs from PM2.5 and a mapping file with BC OC fraction content by sector/subsector/technology
-#' Used for emissions in several sectors.
-#' @param df tibble which contains PM2.5 data to be used to get BC and OC data
-#' @param BC_OC_assumptions tibble which contains BC and OC fractions
-#' @importFrom assertthat assert_that
-#' @importFrom dplyr filter left_join rename mutate group_by select summarise_all ungroup
-#' @return tibble with BC and OC rows added
 
 compute_BC_OC <- function(df, BC_OC_assumptions) {
   #There is no data for BC/OC in the base year, so use fractions of PM2.5 to calculate BC/OC emission factors.
@@ -1256,4 +1371,197 @@ join.gdp.ts <- function(past, future, grouping) {
   else {
     rslt
   }
+}
+
+
+#' replace_outlier_EFs
+#'
+#' Helper function to replace emission factors (EFs) outside a threshold with a median EF
+#' Used for emission factors in several sectors
+#' @param df Base tibble to start from that contains EFs, and may include NAs
+#' @param to_group Character vector indicating the column names to group by.
+#' This relates to how specific the median will be, whether it is by sector, sector and subsector, etc.
+#' @param names Character vector indicating the column names of the returned tibble
+#' @param ef_col_name Name of the column containing emission factors
+#' @importFrom assertthat assert_that
+#' @importFrom dplyr filter anti_join rename mutate group_by_at select summarize ungroup bind_rows
+#' @return tibble with corresponding region, year, Non.CO2, GCAM sector, subsector, stub.technology, and modified EFs
+
+replace_outlier_EFs <- function(df, to_group, names, ef_col_name) {
+
+  # silence package check notes
+  region <- Non.CO2 <- year <- supplysector <- subsector0 <- subsector <- stub.technology <-
+    emiss.coef <- NULL
+
+  assert_that(is_tibble(df))
+  assert_that(is.character(to_group))
+  assert_that(is.character(names))
+  assert_that(is.character(ef_col_name))
+
+  # Generate median emissions factors
+  median.true <- df %>%
+    rename(emiss.coef = .data[[ef_col_name]]) %>%
+    # Remove NAs so as to not skew the median
+    filter(!is.na(emiss.coef)) %>%
+    dplyr::group_by_at(to_group) %>%
+    summarize(emiss.coef = median(emiss.coef)) %>%
+    ungroup() %>%
+    rename(medianEF = emiss.coef)
+
+  # Some year / pollutant / sector / subsector / tech are NA for all entries, and should be set to 0
+  median.skewed <- df %>%
+    rename(emiss.coef = .data[[ef_col_name]]) %>%
+    replace_na(list(emiss.coef = 0)) %>%
+    dplyr::group_by_at(to_group) %>%
+    summarize(emiss.coef = median(emiss.coef)) %>%
+    ungroup() %>%
+    rename(medianEF = emiss.coef)
+
+  # We want to join these tables so that only the entries not in median.true are retained from median.skewed
+  # These all have EFs of 0
+  median <- median.skewed %>%
+    anti_join(median.true, by=(to_group)) %>%
+    bind_rows(median.true)
+
+  # Find the standard deviation, which will be used to establish our outlier threshold
+  sd <- df %>%
+    rename(emiss.coef = .data[[ef_col_name]]) %>%
+    dplyr::mutate_if(is.numeric, ~ifelse(abs(.) == Inf,NA,.)) %>%
+    dplyr::group_by_at(to_group) %>%
+    mutate(sd = sd(emiss.coef, na.rm = TRUE)) %>%
+    ungroup() %>%
+    select(to_group, sd) %>%
+    distinct()
+
+  # Replace all emissions factors outside a threshold (two standard deviations higher than the median, three lower)
+  # or that are NAs with the median emissions factor for that year, non.CO2, and technology
+  # The output table in named "noBCOC" because in several cases where this is currently used, BC and OC EFs are added in at the next step.
+  noBCOC <- df %>%
+    rename(emiss.coef = .data[[ef_col_name]]) %>%
+    left_join_error_no_match(median, by=(to_group)) %>%
+    # we use a left_join here- LJENM results in an errors due to NAs from 1975
+    # TODO: alternatively, remove 1975 all together?
+    left_join(sd, by=(to_group)) %>%
+    # Replace EFs that are two standard deviation higher or three standard deviations lower than the median or are NA or Inf with the median
+    mutate(emiss.coef = if_else(emiss.coef > medianEF + (2 * sd) | emiss.coef < medianEF - (3 * sd),
+                                medianEF, emiss.coef),
+           emiss.coef = if_else(is.infinite(emiss.coef), medianEF, emiss.coef),
+           emiss.coef = if_else(is.na(emiss.coef), medianEF, emiss.coef)) %>%
+    rename({{ef_col_name}} := emiss.coef) %>%
+    select(all_of(names))
+
+  return (noBCOC)
+}
+
+#' calc_fixed_charge_rate
+#'
+#' A method for annualizing payments to capital given a price of capital and payback period
+#' @param rate The rate for the cost of borrowing
+#' @param period The number of periods over which payments will be made
+#' @return The annual fixed charge rate which can be applied to an overnight capital cost.
+calc_fixed_charge_rate <- function(rate, period) {
+  (rate * (1+rate)^period) /
+    ((1+rate)^period -1)
+}
+
+#' resource_reserve_back_calculate
+#'
+#' Back calculate reserve additions to be exactly enough given our historical production
+#' and assumed production lifetime.  Note production lifetimes may not cover the entire
+#' historical period and production may dip below capacity making the calculation a bit more
+#' tricky.  The \code{resource_reserve_back_calculate} replicates the resource / reserve
+#' behavior in GCAM to help project forward production by each historical vintage so we can
+#' accurately back calculate the reserves despite these complications.
+#' @section Warning: Results of this calculation are dependent on users selection for \code{MODEL_BASE_YEARS}
+#'
+#' @param data A data frame which is already nested for a single region / "technology".  The data
+#' must include a columns for \code{value} with the annual production by \code{year} and
+#' in addition requires a column \code{lifetime} with the assumed production lifetime of this "technology".
+#' @return A data.frame with columns \code{year} and \code{value} which are the reserve additions
+#' by year which exactly replicate the given annual production and lifetime assumption.
+#' @importFrom dplyr arrange mutate filter pull bind_rows
+resource_reserve_back_calculate <- function(data) {
+  # calculate timesteps of the MODEL_BASE_YEARS
+  GCAM_timesteps <- diff(MODEL_BASE_YEARS)
+  start.year.timestep <- modeltime.PERIOD0_TIMESTEP
+  model_year_timesteps <- tibble(year = MODEL_BASE_YEARS, timestep = c(start.year.timestep, GCAM_timesteps))
+
+  # initialize variables which we will need to do the processing
+  data %>%
+    filter(year %in% MODEL_BASE_YEARS) %>%
+    repeat_add_columns(tibble(year_operate = MODEL_BASE_YEARS)) %>%
+    left_join_error_no_match(model_year_timesteps, by = c("year_operate" = "year")) %>%
+    filter(year_operate >= year) %>%
+    arrange(year_operate, year) %>%
+    mutate(max.annual.prod = 0,
+           annual.prod = 0,
+           reserve = 0,
+           cumul.prod = 0) ->
+    data_proc
+
+  # operate each model base year one at a time
+  for(year_i in MODEL_BASE_YEARS) {
+    curr_slice <- data_proc[data_proc$year_operate == year_i, ]
+    if(year_i == MODEL_BASE_YEARS[1]) {
+      # first year assume all production in this vintage
+      curr_slice %>%
+        mutate(max.annual.prod = value,
+               annual.prod = value,
+               reserve = annual.prod * lifetime,
+               cumul.prod = annual.prod * timestep) ->
+        curr_slice
+    } else {
+      # pull out the new vintage slice
+      curr_slice %>%
+        filter(year == year_operate) ->
+        new_inv_slice
+      # grab the annual production in this year and the timestep which will be needed
+      # to calculate production from existing vintages as well
+      curr_demand <- new_inv_slice %>% pull(value)
+      curr_timestep = new_inv_slice %>% pull(timestep)
+      # calculate production from existing vintages first
+      prev_slice %>%
+        mutate(remain = reserve - cumul.prod,
+               # save previous production so as to be able to linearly adjust depletion
+               prev.annual.prod = annual.prod,
+               # the max annual production may need to get scaled down if this reserve is about
+               # to run out in this timestep
+               max.annual.prod = pmin(max.annual.prod,
+                                      pmax((remain - curr_timestep * prev.annual.prod) * 2.0 / curr_timestep + prev.annual.prod, 0.0)),
+               # calculate the production short fall which if positive will drive new investment
+               supply.shortfall = curr_demand - sum(max.annual.prod),
+               # if the short fall is negative we have over capacity so annual production will need
+               # to scale down from the max
+               annual.prod = if_else(supply.shortfall >= 0, max.annual.prod,
+                                     max.annual.prod * (curr_demand / sum(max.annual.prod)))) ->
+        prev_slice
+      # use the shortfall to set the new vintage production and reserves
+      new_prod <- pmax(unique(prev_slice$supply.shortfall), 0.0)
+      new_inv_slice %>%
+        mutate(max.annual.prod = new_prod,
+               annual.prod = new_prod,
+               reserve = annual.prod * lifetime,
+               cumul.prod = annual.prod * timestep) ->
+        new_inv_slice
+      # update previous vintage values in the current "slice"
+      curr_slice %>%
+        filter(year != year_operate) %>%
+        mutate(annual.prod = prev_slice$annual.prod,
+               # update cumulative depletion assuming linear change from previous production to current production
+               cumul.prod = prev_slice$cumul.prod + prev_slice$prev.annual.prod * timestep + 0.5 * ( annual.prod - prev_slice$prev.annual.prod) * timestep,
+               # copy forward the rest
+               max.annual.prod = prev_slice$max.annual.prod,
+               reserve = prev_slice$reserve) %>%
+        # add back new investment
+        bind_rows(new_inv_slice) ->
+        curr_slice
+    }
+    # set the current "slice" back into the original DF
+    prev_slice = curr_slice
+    data_proc[data_proc$year_operate == year_i, ] = curr_slice
+  }
+  # ultimately we just need the new vintage reserves
+  data_proc %>%
+    filter(year == year_operate) %>%
+    select(year, value = reserve)
 }
